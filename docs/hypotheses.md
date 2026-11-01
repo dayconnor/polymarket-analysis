@@ -265,3 +265,15 @@ after that (by 2026-10-05 07:12). A (market, horizon) snapshot is formed only
 if t_h ≤ 2026-10-04 23:59:59, so that every trade before t_h is observed. This
 mainly removes 1-hour snapshots near the data end; markets with no observed
 trades have no snapshot at any horizon. Recorded before any snapshot exists.
+
+**D4 (after registration, 2026-10-31; strengthens Section 7, before any
+outcome comparison).** The Section 7 check adds a stratified sample to the 200
+random markets: 30 kept markets per subject × format cell (5 subjects × 2
+formats; every market in a cell with fewer than 30), drawn with a fixed seed
+after the classifier is frozen and validated (Section 6). The random sample
+alone gives a rare cell such as politics (about 0.8% of markets) roughly a 20%
+chance of no draws. Two or more payout disagreements among a cell's markets
+stop analysis of that cell until its outcome mapping is explained and fixed;
+the 99% rule on the random sample is unchanged. The `closedTime` −
+resolution-time distribution is also reported per cell. Recorded before any
+price is compared with any outcome.
