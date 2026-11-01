@@ -2,14 +2,18 @@
 
 Usage:
     python pipeline/run_sql.py sql/00_profile/00_sources.sql sql/00_profile/01_schema.sql
+    python pipeline/run_sql.py --set dq_day=2026-09-08 sql/00_profile/00_sources.sql ...
 
 Statements are split on a semicolon at the end of a line. Each statement's
 leading `-- ` comment block is printed as its header, then its result (if any).
 All files share one connection, so views defined in an earlier file (e.g.
 00_sources.sql) are visible to later ones, and DuckDB's HTTP cache is reused.
 If HF_TOKEN is set, it is registered as a Hugging Face secret to avoid
-anonymous rate limits.
+anonymous rate limits. Each --set NAME=VALUE runs SET VARIABLE NAME = 'VALUE'
+(a string) before the first file.
 """
+
+import argparse
 
 import os
 import re
@@ -40,13 +44,23 @@ def header_of(statement):
     return "\n".join(lines)
 
 
-def main(paths):
+def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("paths", nargs="+")
+    parser.add_argument("--set", action="append", default=[], metavar="NAME=VALUE")
+    args = parser.parse_args(argv)
+
     con = duckdb.connect()
     token = os.environ.get("HF_TOKEN")
     if token:
         con.execute(f"CREATE SECRET hf_token (TYPE huggingface, TOKEN '{token}')")
+    for pair in args.set:
+        name, _, value = pair.partition("=")
+        if not name.isidentifier():
+            parser.error(f"bad --set name: {name!r}")
+        con.execute(f"SET VARIABLE {name} = ?", [value])
 
-    for path in paths:
+    for path in args.paths:
         print(f"\n######## {path}")
         with open(path) as f:
             statements = split_statements(f.read())
