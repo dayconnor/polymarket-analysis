@@ -258,3 +258,10 @@ itself is excluded. Liquidity therefore uses the market's full trade history
 since creation, not only the two weeks before `closedTime` that the staleness
 cap requires for snapshot prices. No definition, test or threshold changes.
 Recorded before any price path or snapshot exists.
+
+**D3 (after registration, 2026-10-31; inclusion rule, before any snapshot).**
+Trade data end at 2026-10-04 23:59:59 UTC, but 3,347 resolved markets close
+after that (by 2026-10-05 07:12). A (market, horizon) snapshot is formed only
+if t_h ≤ 2026-10-04 23:59:59, so that every trade before t_h is observed. This
+mainly removes 1-hour snapshots near the data end; markets with no observed
+trades have no snapshot at any horizon. Recorded before any snapshot exists.
