@@ -8,6 +8,15 @@
 -- All timestamps are reported in UTC, regardless of the machine's local zone.
 SET TimeZone = 'UTC';
 
+-- HF allows 5,000 resolver requests per 5-minute window with a token (3,000 without),
+-- and a full-column scan needs more. Waits of 20 s x1.5 over 6 retries (~415 s) outlast
+-- one window, so a 429 pauses the scan instead of failing it.
+SET http_retries = 6;
+
+SET http_retry_wait_ms = 20000;
+
+SET http_retry_backoff = 1.5;
+
 SET VARIABLE trades_path = 'hf://datasets/SII-WANGZJ/Polymarket_data@73bc1adc43b05709d2cde3bf41ef4111eda3f4fc/trades.parquet';
 
 SET VARIABLE markets_path = 'hf://datasets/SII-WANGZJ/Polymarket_data@73bc1adc43b05709d2cde3bf41ef4111eda3f4fc/markets.parquet';
