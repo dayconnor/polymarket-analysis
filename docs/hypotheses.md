@@ -248,3 +248,13 @@ near 1 about twice as often as token1 in that subset, which carries
 information about the token1 base rate, so it is disclosed here. No later
 decision in this document was chosen using it, and it does not enter any
 analysis.
+
+**D2 (after registration, 2026-10-31; clarification, no design change).** The
+RQ2 liquidity definition (Section 3) is read literally: the sum of
+`usd_amount` over all of the market's trades whose `(block_number, log_index)`
+precedes that of the snapshot trade. Dust trades (< $1) are included, since
+the $1 floor applies only to the choice of snapshot trade; the snapshot trade
+itself is excluded. Liquidity therefore uses the market's full trade history
+since creation, not only the two weeks before `closedTime` that the staleness
+cap requires for snapshot prices. No definition, test or threshold changes.
+Recorded before any price path or snapshot exists.
