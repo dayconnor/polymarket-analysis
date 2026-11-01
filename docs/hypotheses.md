@@ -277,3 +277,15 @@ stop analysis of that cell until its outcome mapping is explained and fixed;
 the 99% rule on the random sample is unchanged. The `closedTime` −
 resolution-time distribution is also reported per cell. Recorded before any
 price is compared with any outcome.
+
+**D5 (after registration, 2026-11-01; changes Section 6 labeling, before any
+evaluation result).** The round-1 labels (`labels/class_round1.csv`) were
+drafted by Claude, the assistant that wrote the classifier rules, and then
+reviewed and corrected by the author. They are therefore not independent of
+the rules. The drafter applied `docs/classifier_codebook.md` to the six text
+fields only, without consulting `int_market_class.parquet`, any price or any
+outcome, so "blind to the predicted class" (Section 6) holds only in that
+narrower sense. A labeler who also wrote the rules tends to share their reading
+of ambiguous cases, which biases agreement upward. The evaluation therefore
+reports the number of rows the author changed in review, and the rows marked
+unsure separately. Recorded before the evaluation query was written or run.
