@@ -15,7 +15,7 @@ label_id,market_id,question,slug,event_slug,series_slug,sports_market_type,label
 14,1961886,"XRP Up or Down - April 13, 3:45PM-4:00PM ET",xrp-updown-15m-1776109500,xrp-updown-15m-1776109500,xrp-up-or-down-15m,,crypto,template,0,
 15,2835521,"Bitcoin Up or Down - July 9, 4PM ET",bitcoin-up-or-down-july-9-2026-4pm-et,bitcoin-up-or-down-july-9-2026-4pm-et,btc-up-or-down-hourly,,crypto,template,0,
 16,637941,"XRP Up or Down - October 18, 9PM ET",xrp-up-or-down-october-18-9pm-et,xrp-up-or-down-october-18-9pm-et,xrp-up-or-down-hourly,,crypto,template,0,
-17,1032312,Will Silver (SI) hit (LOW) $40 by end of January?,si-hit-40-low-jan-2026-159-697-786,si-hit-jan-2026,will-silver-si-hit,,other,template,1,monthly hit-price family; series slug has no cadence word (format edge 4)
+17,1032312,Will Silver (SI) hit (LOW) $40 by end of January?,si-hit-40-low-jan-2026-159-697-786,si-hit-jan-2026,will-silver-si-hit,,other,event,1,monthly hit-price family; series slug has no cadence word (format edge 4)
 18,1272728,"XRP Up or Down - January 27, 2:45PM-3:00PM ET",xrp-updown-15m-1769543100,xrp-updown-15m-1769543100,xrp-up-or-down-15m,,crypto,template,0,
 19,2854870,Will the lowest temperature in London be 20°C on July 11?,lowest-temperature-in-london-on-july-11-2026-20c,lowest-temperature-in-london-on-july-11-2026,london-daily-lowest-temperature,,weather,template,0,
 20,2364414,Arizona Diamondbacks vs. San Francisco Giants: O/U 10.5,mlb-ari-sf-2026-05-27-total-10pt5,mlb-ari-sf-2026-05-27,mlb,totals,sports,event,0,
@@ -52,7 +52,7 @@ label_id,market_id,question,slug,event_slug,series_slug,sports_market_type,label
 51,516889,Will Alabama win the ReliaQuest Bowl?,will-alabama-win-the-reliaquest-bowl,cfb-alabama-vs-michigan,,,sports,event,0,
 52,1986325,Will the highest temperature in Panama City be 36°C on April 16?,highest-temperature-in-panama-city-on-april-16-2026-36c,highest-temperature-in-panama-city-on-april-16-2026,panama-daily-weather,,weather,template,0,
 53,2739732,"Ethereum Up or Down - July 1, 2:05AM-2:10AM ET",eth-updown-5m-1782885900,eth-updown-5m-1782885900,eth-up-or-down-5m,,crypto,template,0,
-54,2034205,Will WTI Crude Oil (WTI) hit (HIGH) $95 in April?,will-wti-crude-oil-wti-hit-high-95-in-april-181,what-price-will-wti-hit-in-april-2026,crude-oil-cl-hit,,other,template,1,monthly hit-price family; series slug has no cadence word (format edge 4)
+54,2034205,Will WTI Crude Oil (WTI) hit (HIGH) $95 in April?,will-wti-crude-oil-wti-hit-high-95-in-april-181,what-price-will-wti-hit-in-april-2026,crude-oil-cl-hit,,other,event,1,monthly hit-price family; series slug has no cadence word (format edge 4)
 55,508852,"Will Trump say ""god"" 4 or more times during Pennsylvania rally?",will-trump-say-god-4-or-more-times-during-pennsylvania-rally,what-will-trump-say-during-pennsylvania-rally-oct-5,,,politics,event,0,
 56,4240150,Portland Fire vs. Golden State Valkyries: O/U 160.5,wnba-por-gsv-2026-09-18-total-160pt5,wnba-por-gsv-2026-09-18,wnba,totals,sports,event,0,
 57,1193092,"Bitcoin Up or Down - January 16, 12:45PM-1:00PM ET",btc-updown-15m-1768585500,btc-updown-15m-1768585500,btc-up-or-down-15m,,crypto,template,0,
@@ -323,7 +323,7 @@ label_id,market_id,question,slug,event_slug,series_slug,sports_market_type,label
 322,746218,"Will Elon Musk post 440-459 tweets from December 2 to December 9, 2025?",elon-musk-of-tweets-december-2-december-9-440-459,elon-musk-of-tweets-december-2-december-9,elon-tweets,,other,template,0,
 323,2851079,ITF Don Benito: Valentina Ryser vs Celia Cervino Ruiz,itf-ryser-ruiz-2026-07-09,itf-ryser-ruiz-2026-07-09,itf,moneyline,sports,event,0,
 324,509270,"Will Trump say ""Kamala"" 30 or more times during Colorado rally on October 11?",will-trump-say-kamala-30-or-more-times-during-colorado-rally-on-october-11,what-will-trump-say-during-colorado-rally,,,politics,event,0,
-325,1483741,"Will Gold (GC) hit (LOW) $4,300 by end of March?",will-gold-gc-hit-low-4300-by-end-of-march,will-gold-gc-hit-by-end-of-march,what-will-gold-gc-hit,,other,template,1,monthly hit-price family; series slug has no cadence word (format edge 4)
+325,1483741,"Will Gold (GC) hit (LOW) $4,300 by end of March?",will-gold-gc-hit-low-4300-by-end-of-march,will-gold-gc-hit-by-end-of-march,what-will-gold-gc-hit,,other,event,1,monthly hit-price family; series slug has no cadence word (format edge 4)
 326,712104,Feyenoord Rotterdam vs. PEC Zwolle: Both Teams to Score,ere-fey-zwo-2025-12-06-btts,ere-fey-zwo-2025-12-06-more-markets,ere-2025,both_teams_to_score,sports,event,0,
 327,4232230,Valorant: Glacial Guardians vs BERG - Map 2 Winner,val-gg-berg-2026-09-05-game2,val-gg-berg-2026-09-05,valorant,child_moneyline,sports,event,0,
 328,1701997,Will the highest temperature in Chengdu be 24°C or higher on March 28?,highest-temperature-in-chengdu-on-march-28-2026-24corhigher,highest-temperature-in-chengdu-on-march-28-2026,chengdu-daily-weather,,weather,template,0,
