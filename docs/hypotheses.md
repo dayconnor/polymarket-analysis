@@ -289,3 +289,69 @@ narrower sense. A labeler who also wrote the rules tends to share their reading
 of ambiguous cases, which biases agreement upward. The evaluation therefore
 reports the number of rows the author changed in review, and the rows marked
 unsure separately. Recorded before the evaluation query was written or run.
+
+**D6 (after registration, 2026-11-11; RQ3 operational details, before any
+track record).** The wallet tables (`sql/02_intermediate/08`, `09`) require
+the following choices, which Section 4 left open. Counts are from
+`09_int_wallet_markets.sql`, which carries no outcome column.
+
+1. *Self-trades.* The 905 fills with maker = taker (513 in resolved markets)
+   are dropped from every RQ3 quantity: track records, market counts, the
+   signal and bot fill counts. They net to zero P&L but would add USD to the
+   denominator and a market toward the 20-market threshold.
+2. *Trades that build a record.* A record uses both legs of every fill
+   (maker and taker pooled) in the 2,205,956 resolved markets of Section 2,
+   with no volume threshold, and only legs timestamped before that market's
+   `closedTime`. This drops 378,875,786 legs in unresolved markets and
+   2,613,342 legs (0.12%; $354M, 0.46% of resolved-market USD) traded at or
+   after `closedTime`, when the outcome is already fixed. Price is the raw
+   price of the traded token, tokens are `token_amount`, USD is `usd_amount`;
+   fees are not modelled. The return does not depend on whether a
+   complementary match is recorded as a buy of one token or a sale of the
+   other. Kept: 2,152,280,754 legs in 290,120,454 (wallet, market) pairs over
+   3,065,859 wallets.
+3. *Point in time.* Track records, the 20-market qualification and the
+   top-decile cutoff are recomputed once per UTC day, from markets whose
+   `closedTime` precedes 00:00 UTC of the snapshot trade's day, not at each
+   snapshot's exact time. The qualifying population is 299,834,233
+   wallet-days over the 1,211 snapshot days (up to 1,052,265 wallets on one
+   day), and a cutoff at each of 351,535 snapshot times is not computable
+   here. The rule uses strictly less information than Section 4 and cannot
+   leak.
+4. *USD floor.* A wallet qualifies only if it also traded at least $1,000
+   (`usd_amount`) in the same pre-as-of resolved markets as its 20-market
+   count. A realized return per USD over a few dollars is mostly noise, and
+   such wallets would crowd the top decile. At data end the floor removes
+   380,461 of 1,053,260 wallets with 20 or more markets (36%) but only 0.2% of
+   resolved-market USD (90.7% to 90.5% held by qualifying wallets). The level
+   was chosen from these USD counts alone. The Section 4 definition without
+   the floor is reported as a sensitivity.
+5. *Smart wallets.* A qualifying wallet is smart on a day if its record is
+   at or above the 0.9 quantile (`quantile_disc`, ties included) of all
+   wallets qualifying that day, including wallets that no longer trade. A day
+   with no qualifying wallet has no smart wallets.
+6. *Signal.* Over smart wallets' legs in the market from 7 days before the
+   snapshot trade through the snapshot trade itself (by
+   `(block_number, log_index)`), signal = Σ d · usd / Σ usd, with d = +1 for
+   buying token1 or selling token2 and −1 for the reverse. A market with no
+   smart volume has signal 0. The number of such markets is reported, and the
+   model is refit on markets with smart volume as a descriptive sensitivity.
+7. *Population.* 1-day primary snapshots (Section 3; 351,535 markets), with
+   p clipped and SEs clustered as in RQ1.
+8. *Roles.* The single confirmatory test uses all smart legs. Maker-only and
+   taker-only signals (records still pooled over roles) are fitted in two
+   further models and reported as secondary, with unadjusted two-sided
+   p-values.
+9. *Bots (T10).* The top 0.1% by trade count are the wallets with at least
+   83,099 fills (both roles, every market in the file, self-trades excluded):
+   3,193 wallets holding 53.2% of all legs. Bots stay in the confirmatory
+   test. The flag uses full-period fill counts but no outcome. The repeated
+   test removes these wallets from both the qualifying population (cutoffs
+   recomputed) and the signal. As a descriptive breakdown, bots are split by
+   their share of maker legs in resolved markets: market-maker-like (≥ 80%
+   maker; 1,316), taker-like (≥ 80% taker; 713) and mixed (1,164). The model
+   is refit with each group removed in turn, to show which kind of bot drives
+   any difference.
+
+Recorded before any wallet track record or payout-weighted wallet quantity was
+computed.
