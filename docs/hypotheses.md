@@ -355,3 +355,53 @@ the following choices, which Section 4 left open. Counts are from
 
 Recorded before any wallet track record or payout-weighted wallet quantity was
 computed.
+
+**D7 (after registration, 2026-11-12; RQ1 estimation details, before any
+calibration quantity).** Section 4 leaves the following open for RQ1. The
+analysis frame (`sql/03_marts/03_mart_analysis.sql`) has joined outcomes to
+prices, but it prints counts only. All six cells have at least 161 clusters
+per side, so the family stays at six tests.
+
+1. *Inference.* Logistic regressions are fitted by maximum likelihood
+   (statsmodels `Logit`). The standard errors are cluster-robust (CR1:
+   G/(G − 1) · (N − 1)/(N − K)), using the Section 3 clusters, with z
+   reference distributions. Each test reports the interaction coefficient,
+   its SE, a 95% Wald CI, and the unadjusted and Holm-adjusted p-values. A
+   model that fails to converge or shows perfect separation is reported as
+   not estimable. No substitute model is fitted.
+2. *Calibration intercept.* Calibration-in-the-large is the intercept a in
+   logit P(win) = a + logit(p), with logit(p) entered as an offset (a = 0:
+   prices are right on average; a > 0: outcomes occur more often than
+   priced). The slope is the registered coefficient on logit(p).
+3. *Scores.* The Brier score uses the unclipped price. Log loss uses p
+   clipped to [0.001, 0.999], as in the model.
+4. *Calibration curves.* The "decile" curves use ten equal-width price bins,
+   [0, 0.1), [0.1, 0.2), …, [0.9, 1.0]. Each bin plots the mean price
+   against the observed win frequency. Bins with fewer than 30 markets are
+   drawn but flagged.
+5. *Bootstrap.* The descriptive CIs are percentile intervals from 1,000
+   resamples of clusters, drawn within each (horizon × format × subject)
+   cell, with seed 20261112.
+6. *Symmetrized curve.* Each market enters twice, as (p, token1_won) and as
+   (1 − p, 1 − token1_won), per (horizon × format) and crypto vs.
+   non-crypto. Clusters are resampled as in item 5. Descriptive only.
+7. *Sensitivities (Section 5) for RQ1.* Each sensitivity refits the six
+   interaction models with the same specification and reports coefficients
+   and 95% CIs only. No p-values and no Holm correction are applied.
+   - 5.1 drops the volume floor; 5.2 raises it to $10,000.
+   - 5.4 drops the staleness cap. 5.5 clusters by `event_id`.
+   - 5.6 fits each `closedTime` calendar year separately. A cell-year with
+     fewer than 30 clusters on either side is not fitted.
+   - 5.7 drops markets with `closedTime < end_date`.
+   - 5.3 replaces the snapshot price with the token-weighted VWAP,
+     Σ price · tokens / Σ tokens, over all trades (dust included) with
+     timestamp in [t_h − 5 min, t_h). It uses `token_amount` from
+     `08_int_wallet_trades`, with prices on the token1 side. A market with
+     no trade in that window has no VWAP snapshot. The population is
+     otherwise primary.
+
+   The application of Section 5 to RQ2 and RQ3 is fixed in a later entry,
+   before either is analysed.
+
+Recorded before any calibration slope, intercept, score or curve was
+computed.
