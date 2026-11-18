@@ -405,3 +405,63 @@ per side, so the family stays at six tests.
 
 Recorded before any calibration slope, intercept, score or curve was
 computed.
+
+**D8 (after registration, 2026-11-17; RQ1 Holm family rule, recorded after
+the RQ1 results; RQ2 estimation details, before any RQ2 result).**
+
+*Part A, RQ1 (recorded after the RQ1 results were computed).* Section 4
+shrinks the RQ1 family only for cells with fewer than 30 clusters per side,
+and D7.1 does not say whether a cell that is not estimable stays in the
+family. In the executed notebook (a395c04), the 1-hour event cell did not
+converge: 97.6% of its crypto snapshots are priced at or below $0.01 or at or
+above $0.99. It was treated as leaving the family, which gave five Holm-
+adjusted tests. Because this rule was settled after the results existed, a
+robustness check is reported with it. Keeping the cell in a six-test family
+at p = 1 yields the same two significant cells, at the same adjusted
+p-values to four decimals; no other cell comes close to α. The
+confirmatory conclusion therefore does not depend on the rule.
+
+*Part B, RQ2 (recorded before any RQ2 outcome quantity is computed).* The
+RQ2 notebook (`notebooks/02_rq2_longshot.ipynb`, first built in 9745533)
+reads no outcome column. Only its planted control on simulated outcomes has
+been executed. The weighting choice in item 1 was made from the cluster
+composition of the 1-day longshot frame and from simulated outcomes, without
+any RQ2 outcome.
+
+1. *H2a.* The estimate is the snapshot-level mean of (won − price) over the
+   1-day longshot snapshots, both formats pooled. It is obtained from an
+   intercept-only OLS with CR1 cluster-robust SEs on the Section 3 clusters
+   and a z reference distribution, as in D7.1. The test is two-sided, with a
+   95% Wald CI. This is the mean Section 4 names, with inference by cluster,
+   which is how "test on cluster means" is read. The alternative of weighting
+   each cluster equally was rejected: the 523 template clusters (4.7% of
+   11,067) hold 65.1% of the 144,420 snapshots and would receive 4.7% of the
+   weight, and weather would fall from 41.6% to 1.4%. That unweighted
+   cluster-mean t test (df = G − 1) is reported as a descriptive.
+2. *H2b.* OLS of (won − price) on log liquidity and a template indicator
+   (format fixed effect), with CR1 cluster-robust SEs on the Section 3
+   clusters and a z reference distribution. The test is two-sided, with a
+   95% Wald CI.
+3. *Zero liquidity.* Liquidity enters as log(1 + USD). A snapshot that is the
+   market's first trade (2,125 of 144,420 one-day longshot snapshots) is kept
+   at liquidity 0.
+4. *Multiplicity.* Holm across H2a and H2b at family-wise α = 0.05.
+5. *Descriptives.* For each horizon × format: count, clusters and mean
+   (won − price) with a 1,000-resample cluster-bootstrap percentile CI
+   (seed 20261112). At 1 day, the same by liquidity quintile and by subject,
+   plus the unweighted cluster-mean test of item 1.
+6. *Sensitivities (Section 5 for RQ2).* H2a and H2b are re-estimated at
+   1 day, and coefficients and 95% CIs are reported with no p-values: 5.1 no
+   volume floor; 5.2 floor $10,000; 5.3 longshot side and price from the
+   5-minute VWAP (D7.7); 5.4 no staleness cap; 5.5 `event_id` clustering;
+   5.6 each `closedTime` year with at least 30 clusters; 5.7 excluding early
+   closes. For 5.7, the RQ1 exploratory notebook (3dd5a4b) shows that early
+   close is itself selected on the outcome in deadline markets, so 5.7 is
+   read as a check of fragility, not as a bias correction.
+7. *Planted control.* The check uses real prices, liquidity and clusters with
+   simulated outcomes, 50 draws per scenario. 95% CIs covered the truth in
+   94–98% of draws, and the planted effects were rejected in 50/50 draws.
+   Null rejection rates were 0.06 (H2a) and 0.02 (H2b); with 1,000 null
+   draws, the H2a rate was 0.054.
+
+Recorded before any RQ2 longshot outcome was computed.
