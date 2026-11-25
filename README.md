@@ -1,10 +1,9 @@
 # Polymarket Calibration
 
-**Status: analysis. RQ1 and RQ2 tested; RQ3 protocol complete (D9), test not yet
-run.**
+**Status: analysis. RQ1, RQ2 and RQ3 tested; dashboard and write-ups to come.**
 The hypotheses were pre-registered in [`docs/hypotheses.md`](docs/hypotheses.md)
 (`bc6dca3`, 2026-10-21) before any price was compared with any outcome. Every later
-estimation choice was logged there as a dated deviation (D1–D8) before the result
+estimation choice was logged there as a dated deviation (D1–D9) before the result
 it affects existed, except one RQ1 family rule (D8 Part A), which is marked as
 written after the RQ1 results and reported with a robustness check.
 
@@ -105,13 +104,51 @@ The H2a result is narrower than "Polymarket longshots are overpriced":
 
 ### RQ3: smart money
 
-**Not yet tested.** The notebook is built and has not loaded the outcome. D9
-(inference details, Section 5 for RQ3 and a correction to the USD floor) fixes
-the remaining choices. A planted control on simulated outcomes passed: a planted
-effect of β = 0.03 was detected in 95.5% of 200 draws (analytic power about 98%),
-and a true null was rejected in 5.0%. The minimum detectable
-effect is 0.021 log-odds per unit of signal, so a significant but economically
-trivial coefficient is the likely failure mode to guard against.
+**Supported statistically; economically negligible.** In `token1_won ~ logit(p) +
+signal` over the 351,535 primary 1-day markets (17,291 clusters), the signal
+coefficient is +0.038 [0.020, 0.056], p = 0.00006. The signal is the net share of
+smart-wallet USD bought on the token1 side in the 7 days to the snapshot, from −1
+to +1 (D6). Moving it from 0 to +1 raises the win probability by 0.50 percentage
+points at the market's own price. Among markets with smart volume the median
+|signal| is 0.76, so a typical market moves by about 0.4 points. The estimate is
+1.8 times the minimum detectable effect (0.021, planted control D9.5), so it is not
+marginal. It is small.
+
+| Test | β [95% CI] | p |
+| --- | --- | ---: |
+| Confirmatory: all smart legs | **+0.038 [0.020, 0.056]** | **0.00006** |
+| Secondary: maker legs only | +0.036 [0.017, 0.054] | 0.0002 |
+| Secondary: taker legs only | +0.036 [0.019, 0.053] | 0.00004 |
+| Secondary: bots excluded | +0.036 [0.019, 0.053] | 0.00003 |
+
+Secondary p-values are unadjusted (D9.3). The effect does not depend on the price
+term or the clustering. Adding a template intercept and price slope (+0.040),
+price-bin indicators (+0.039), `event_id` clustering (CI [0.023, 0.053]) or
+dropping early closes (+0.036) leaves it intact. Four limits apply:
+
+- **It is one-sided.** By signal bin, mean (won − price) is −0.93¢
+  [−1.26, −0.59] under heavy smart selling ([−1, −0.5)) and +0.53¢
+  [0.19, 0.87] under mild buying ([0, 0.5)). Under heavy smart buying ([0.5, 1],
+  103,491 markets) it is −0.04¢ [−0.27, 0.19]. The strongest buy signals carry no
+  measurable information; most of the slope comes from heavy selling. The bins
+  are descriptive.
+- **It is not established where the smart money is substantial.** 27.5% of
+  markets with smart volume have a signal of exactly ±1, which can reflect a few
+  dollars. With at least $1,000 of smart volume (refit A4; 43,373 markets) the
+  coefficient is +0.028 [−0.015, 0.072]. The point estimate is similar, but the
+  CI covers 0.
+- **It is not seen under 5-minute VWAP pricing** (sensitivity 5.3: −0.003
+  [−0.044, 0.037]). Only 49,703 primary markets (14%) have a VWAP window, so
+  this cannot separate the price measure from the subsample.
+- **It is concentrated in 2026 and in thinner markets.** By `closedTime` year
+  (5.6), 2026 (77% of markets) gives +0.038 [0.019, 0.058] and 2025 gives +0.027
+  [−0.012, 0.066]. The coefficient is +0.053 with no volume floor (5.1) and +0.026
+  [0.004, 0.048] with a $10,000 floor (5.2). This fits informed wallets mattering
+  most where prices are thin, but that reading was not tested.
+
+The planted control (real prices, signals and clusters; simulated outcomes)
+covered the truth in 95% of 200 draws per scenario, detected β = 0.03 in 95.5%,
+and rejected a true null in 5.0%.
 
 ## Data
 
@@ -145,10 +182,10 @@ the pre-registration, is in [`docs/data_profile.md`](docs/data_profile.md).
 | Intermediate | `02_intermediate/09_int_wallet_markets.sql` | Net position per (wallet, resolved market): 290,120,454 pairs (5.4 GB), legs reconcile with 08. 3,192,129 wallets; 3,193 flagged as bots (≥ 83,099 fills, the top 0.1%), holding 53.2% of legs. No outcome column. |
 | Marts | `03_marts/02_mart_wallet_signal.sql` | Daily as-of track records (41,115,052 rows over 3,065,859 wallets), top-decile cutoffs for 1,288 snapshot days, and the smart-money signal for the 351,535 primary 1-day markets (273,360 with smart volume) plus 131,891 rows for sensitivities 5.1 and 5.4. The USD floor compares cent-rounded sums (every fill is whole cents), so two runs are identical (D9.4). Reconciles D6 exactly. Independent recomputes of records at the day boundary, literal per-trade P&L, cutoffs and signals find 0 mismatches. No outcome column. |
 | Marts | `03_marts/03_mart_analysis.sql` | The analysis frame: 1,925,812 snapshots joined to outcome, class and signal. The first file to join outcomes to prices; prints counts only. All six RQ1 cells have ≥ 161 clusters per side. |
-| Marts | `03_marts/04_mart_vwap.sql` | 5-minute token-weighted VWAP before each horizon for sensitivity 5.3 (available for 12% of 1-day primary snapshots). The trade sets match the price paths for 192,689 of 192,689 windows. |
+| Marts | `03_marts/04_mart_vwap.sql` | 5-minute token-weighted VWAP before each horizon for sensitivity 5.3 (available for 14% of 1-day primary snapshots, 49,703 of 351,535). The trade sets match the price paths for 192,689 of 192,689 windows. |
 | Analysis | `notebooks/01`, `01b` | RQ1 tests, descriptives, calibration curves, sensitivities; exploratory early-close check. |
 | Analysis | `notebooks/02`, `02b` | RQ2 tests, descriptives, sensitivities; exploratory price-band split. |
-| Analysis | `notebooks/03` | RQ3, built and gated: planted control only. |
+| Analysis | `notebooks/03` | RQ3 confirmatory and secondary tests, signal-bin descriptives, refits, sensitivities. |
 
 Each confirmatory notebook runs a planted control on simulated outcomes before the
 real outcome is loaded. Notebooks 02 and 03 keep the outcome column unread behind a
