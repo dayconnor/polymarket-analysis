@@ -1,7 +1,7 @@
 # Polymarket Calibration
 
-**Status: analysis. RQ1 and RQ2 tested; RQ3 built and awaiting its final protocol
-entry (D9).**
+**Status: analysis. RQ1 and RQ2 tested; RQ3 protocol complete (D9), test not yet
+run.**
 The hypotheses were pre-registered in [`docs/hypotheses.md`](docs/hypotheses.md)
 (`bc6dca3`, 2026-10-21) before any price was compared with any outcome. Every later
 estimation choice was logged there as a dated deviation (D1–D8) before the result
@@ -105,10 +105,11 @@ The H2a result is narrower than "Polymarket longshots are overpriced":
 
 ### RQ3: smart money
 
-**Not yet tested.** The notebook is built, and the outcome stays unloaded until
-D9 (inference details and Section 5 for RQ3) enters the protocol. A planted
-control on simulated outcomes passed: a planted effect of β = 0.03 was detected
-in 99% of 200 draws, and a true null was rejected in 4.5%. The minimum detectable
+**Not yet tested.** The notebook is built and has not loaded the outcome. D9
+(inference details, Section 5 for RQ3 and a correction to the USD floor) fixes
+the remaining choices. A planted control on simulated outcomes passed: a planted
+effect of β = 0.03 was detected in 95.5% of 200 draws (analytic power about 98%),
+and a true null was rejected in 5.0%. The minimum detectable
 effect is 0.021 log-odds per unit of signal, so a significant but economically
 trivial coefficient is the likely failure mode to guard against.
 
@@ -142,7 +143,7 @@ the pre-registration, is in [`docs/data_profile.md`](docs/data_profile.md).
 | Resolution check | `02_intermediate/05`–`07`, `pipeline/fetch_onchain_resolution.py` | Gamma payouts and `closedTime` verified against on-chain resolutions. Passes every stop rule (below). |
 | Intermediate | `02_intermediate/08_int_wallet_trades.sql` | Every fill with maker, taker and directions, full file, for RQ3: 1,266,885,846 rows (18.1 GB). C5 (no exchange, adapter or CTF contract as maker or taker; well-formed wallets and directions): 0 violations, with an in-file planted-row control firing once per check. Only BUY/SELL pairs occur; 905 fills are self-trades (maker = taker). |
 | Intermediate | `02_intermediate/09_int_wallet_markets.sql` | Net position per (wallet, resolved market): 290,120,454 pairs (5.4 GB), legs reconcile with 08. 3,192,129 wallets; 3,193 flagged as bots (≥ 83,099 fills, the top 0.1%), holding 53.2% of legs. No outcome column. |
-| Marts | `03_marts/02_mart_wallet_signal.sql` | Daily as-of track records (41,115,052 rows over 3,065,859 wallets), top-decile cutoffs for 1,211 snapshot days, and the smart-money signal for the 351,535 primary 1-day markets (273,360 with smart volume). Reconciles D6 exactly. Independent recomputes of records at the day boundary, literal per-trade P&L, cutoffs and signals find 0 mismatches. No outcome column. |
+| Marts | `03_marts/02_mart_wallet_signal.sql` | Daily as-of track records (41,115,052 rows over 3,065,859 wallets), top-decile cutoffs for 1,288 snapshot days, and the smart-money signal for the 351,535 primary 1-day markets (273,360 with smart volume) plus 131,891 rows for sensitivities 5.1 and 5.4. The USD floor compares cent-rounded sums (every fill is whole cents), so two runs are identical (D9.4). Reconciles D6 exactly. Independent recomputes of records at the day boundary, literal per-trade P&L, cutoffs and signals find 0 mismatches. No outcome column. |
 | Marts | `03_marts/03_mart_analysis.sql` | The analysis frame: 1,925,812 snapshots joined to outcome, class and signal. The first file to join outcomes to prices; prints counts only. All six RQ1 cells have ≥ 161 clusters per side. |
 | Marts | `03_marts/04_mart_vwap.sql` | 5-minute token-weighted VWAP before each horizon for sensitivity 5.3 (available for 12% of 1-day primary snapshots). The trade sets match the price paths for 192,689 of 192,689 windows. |
 | Analysis | `notebooks/01`, `01b` | RQ1 tests, descriptives, calibration curves, sensitivities; exploratory early-close check. |

@@ -465,3 +465,94 @@ any RQ2 outcome.
    draws, the H2a rate was 0.054.
 
 Recorded before any RQ2 longshot outcome was computed.
+
+**D9 (after registration, drafted 2026-11-17, finalized 2026-11-24; RQ3
+estimation details, Section 5 for RQ3 and a USD-floor fix, before any RQ3
+result).** Section 4 and D6 fix the RQ3 test, the track records and the
+signal. D7 deferred the application of Section 5 to RQ3; this entry fixes
+it, together with the inference details. The primary
+RQ3 frame is the 351,535 primary 1-day markets (17,291 clusters), of which
+273,360 have smart volume and 78,175 have signal 0 (D6.6).
+
+1. *Inference.* `token1_won ~ logit(p) + signal` is fitted by maximum
+   likelihood (statsmodels `Logit`), with p clipped as in Section 4. The SEs
+   are CR1 cluster-robust on the Section 3 clusters, with z reference
+   distributions and 95% Wald CIs. A model that fails to converge or shows
+   separation is reported as not estimable, as in D7.1. The signal
+   coefficient is the single confirmatory test, two-sided at α = 0.05, so no
+   multiplicity correction applies.
+2. *Effect size.* The average change in win probability when the signal
+   moves from 0 to +1, holding each market's price, is reported with the
+   coefficient. It is the mean of expit(η + β) − expit(η), with η the fitted
+   index at signal 0.
+3. *Secondary tests and descriptive refits.*
+   - The maker-only and taker-only models (D6.8) and the repeat without bots
+     (D6.9) are secondary tests of the same form, with unadjusted two-sided
+     p-values.
+   - The following refits report coefficients and 95% CIs only: no USD floor
+     (D6.4), markets with smart volume only (D6.6), each bot group removed
+     (D6.9), and each format (template, event) separately.
+   - Three further refits address misspecification of the price term and the
+     size of the signal:
+     - (a) *Format-adjusted:* adds a template indicator and a
+       template × logit(p) slope. The mean signal differs by format (0.15
+       template, 0.02 event), and RQ1 found that calibration differs by
+       format.
+     - (b) *Price-bin adjusted:* adds indicators for the ten equal-width
+       price bins of D7.4, so miscalibration that is not linear in logit(p),
+       such as the RQ2 longshot pattern, cannot load on the signal.
+     - (c) *Smart volume of at least $1,000:* among markets with smart
+       volume, 27.5% have a signal of exactly ±1, which can reflect a few
+       dollars.
+   - Markets are also binned by signal (no smart volume; [−1, −0.5);
+     [−0.5, 0); [0, 0.5); [0.5, 1]). Per bin, the report gives count, mean
+     price, win rate, and mean (won − price) with a CR1 95% CI, as in D8.1.
+4. *Sensitivities (Section 5 for RQ3).* The confirmatory model is refitted,
+   and coefficients and 95% CIs are reported with no p-values:
+   - 5.1: no volume floor, i.e. 1-day snapshots within the staleness cap at
+     any volume (423,016 markets);
+   - 5.2: volume of at least $10,000 (193,596 markets);
+   - 5.3: the 5-minute VWAP as p (D7.7), with markets without a VWAP dropped
+     and the signal unchanged;
+   - 5.4: no staleness cap, i.e. volume of at least $1,000 at any staleness
+     (411,945 markets);
+   - 5.5: `event_id` clustering;
+   - 5.6: each `closedTime` year with at least 30 clusters;
+   - 5.7: excluding early closes, read as a fragility check (D8.6).
+
+   For 5.1 and 5.4, `sql/03_marts/02_mart_wallet_signal.sql` is extended to
+   compute the signal on the 131,891 additional 1-day rows. Track records and
+   cutoffs do not depend on which snapshots receive a signal.
+
+   The rerun also exposed a defect in the D6.4 USD floor as built in bed9e72.
+   The floor compared a floating-point sum with 1,000, and the sum for a wallet
+   at exactly $1,000.00 fell on either side depending on summation order, so
+   47 such wallets entered or left the qualifying population from run to run.
+   Every one of the 1,266,885,846 fills is a whole number of cents, so the
+   floor now compares the sum rounded to cents, which is the exact sum; the
+   D6.4 definition (at least $1,000) is unchanged.
+   `sql/03_marts/05_check_signal_extension.sql` verifies, before any RQ3
+   outcome is computed, that:
+   - two runs of the corrected mart are identical on all 483,426 signal rows
+     and all 1,288 snapshot days;
+   - the 351,535 primary markets are unchanged as a set;
+   - every difference from the previous run comes from a wallet at exactly
+     $1,000.00. Floored qualifying counts rise by 1 or 2 on 46 of 1,211
+     primary days and never fall, no-floor counts are unchanged, cutoffs move
+     by at most 4 × 10⁻⁶ in the main variant and 4 × 10⁻⁵ in any variant, and
+     14 of 351,535 primary signals change (by at most 0.023).
+5. *Planted control.* The check keeps the real prices, signals and clusters
+   and simulates outcomes as Bernoulli(expit(logit(p) + β · signal)), with
+   200 draws for each of β = 0.03 and β = 0, on the corrected signals.
+   - 95% CIs covered the truth in 95.0% of draws in both scenarios.
+   - β = 0.03 was rejected in 95.5% of draws; the null rejection rate was
+     5.0%.
+   - The minimum detectable effect at 80% power is 0.021 on the log-odds
+     scale per unit of signal.
+   - Before the floor fix (e576842) the control gave 93.0% and 95.5%
+     coverage, 99.0% rejection and a 4.5% null rate. The current code on the
+     pre-fix frame reproduces those figures exactly, so the change comes only
+     from the 14 corrected signals altering the simulated draws. Both runs
+     are consistent with the analytic power of about 98% (β / SE ≈ 4.0).
+
+Recorded before any RQ3 outcome quantity was computed.
