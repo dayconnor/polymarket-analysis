@@ -1,5 +1,6 @@
 -- Analysis frame: one row per (market, horizon) snapshot with class, outcome and, for the
--- 1-day primary rows, the RQ3 signal. The notebooks read only this file.
+-- 1-day rows of the primary, 5.1 and 5.4 populations (D9.4), the RQ3 signal. The
+-- notebooks read only this file.
 -- First file to join token1_won to prices: allowed after the pre-registration (bc6dca3)
 -- and the Section 7 check (210a837). Prints counts only, never an outcome rate.
 -- Keeps every snapshot (no cap, any volume) so sensitivities 5.1, 5.2, 5.4-5.7 filter it.
@@ -48,7 +49,7 @@ COPY (
     JOIN 'data/processed/stg_market_resolution.parquet' r USING (market_id)
     LEFT JOIN 'data/processed/mart_smart_signal.parquet' g
       ON g.market_id = s.market_id
-     AND s.horizon = '1d' AND s.within_cap AND s.volume_usd >= 1000
+     AND s.horizon = '1d'
 ) TO 'data/processed/mart_analysis.parquet' (FORMAT parquet, COMPRESSION zstd);
 
 CREATE OR REPLACE VIEW frame AS
@@ -56,16 +57,19 @@ SELECT * FROM 'data/processed/mart_analysis.parquet';
 
 
 -- Q2 Completeness: every snapshot kept, one row per (market, horizon), every row classed
--- with a known outcome, the signal on exactly the 1-day primary rows, and NULL
--- end_date counted (early_close is NULL there). Expect 0 except n_null_end_date.
+-- with a known outcome, the signal on exactly the 1-day rows of the primary, 5.1 and 5.4
+-- populations (with a snapshot price), and NULL end_date counted (early_close is NULL
+-- there). Expect 0 except n_null_end_date and n_signal_extended.
 SELECT
     (SELECT count(*) FROM frame)
       - (SELECT count(*) FROM 'data/processed/mart_snapshots.parquet')  AS n_row_diff,
     (SELECT count(*) - count(DISTINCT (market_id, horizon)) FROM frame) AS n_dupes,
     count(*) FILTER (WHERE subject IS NULL OR format IS NULL)           AS n_unclassed,
     count(*) FILTER (WHERE token1_won IS NULL)                          AS n_null_outcome,
-    count(*) FILTER (WHERE (signal IS NOT NULL) <> (horizon = '1d' AND is_primary))
-                                                                        AS n_signal_misplaced,
+    count(*) FILTER (WHERE (signal IS NOT NULL)
+                           <> (horizon = '1d' AND (within_cap OR volume_usd >= 1000)
+                               AND snap_price IS NOT NULL))             AS n_signal_misplaced,
+    count(*) FILTER (WHERE signal IS NOT NULL AND NOT is_primary)       AS n_signal_extended,
     (SELECT count(*) FROM 'data/processed/mart_smart_signal.parquet')
       - count(*) FILTER (WHERE signal IS NOT NULL)                      AS n_signal_unjoined,
     count(*) FILTER (WHERE end_date IS NULL)                            AS n_null_end_date

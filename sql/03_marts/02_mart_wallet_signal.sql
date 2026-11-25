@@ -1,7 +1,8 @@
 -- RQ3 mart (Section 4 + D6). Three outputs:
 --   mart_wallet_records_pXX: each wallet's running track record, one row per day it changes
 --   mart_wallet_cutoffs: per snapshot day, qualifying counts and 0.9-quantile cutoffs
---   mart_smart_signal: one row per 1-day primary snapshot, smart-money signal per variant
+--   mart_smart_signal: one row per 1-day snapshot in the primary, 5.1 (no volume floor) or
+--     5.4 (no staleness cap) population (D9.4), smart-money signal per variant
 -- Variants: main (D6), nofloor (D6.4 sensitivity), nobot (T10 repeat), no_mm / no_tk /
 -- no_mx (each bot group removed from population and signal). Roles (D6.8) use main.
 -- No outcome column in any output: the signal-vs-outcome model belongs to the notebook.
@@ -150,17 +151,23 @@ SELECT *
 FROM read_parquet(getvariable('rec_prefix') || '*.parquet');
 
 
--- Q5 1-day primary snapshots (Section 3; D6.7) and their UTC days. day_idx batches Q6.
+-- Q5 1-day snapshots and their UTC days. day_idx batches Q6. Primary rows (Section 3;
+-- D6.7) plus the extra rows sensitivities 5.1 (within cap, any volume) and 5.4 (volume
+-- >= $1,000, any staleness) need (D9.4). Records and cutoffs do not depend on this set,
+-- so primary signals are unchanged (05_check_signal_extension.sql).
 CREATE OR REPLACE TEMP TABLE snaps AS
 SELECT
     row_number() OVER (ORDER BY market_id)::UINTEGER                    AS snap_idx,
     market_id,
+    within_cap AND volume_usd >= 1000                                   AS is_primary,
     epoch(snap_time)::UBIGINT                                           AS snap_ts,
     snap_block_number,
     snap_log_index,
     snap_time::DATE                                                     AS snap_day
 FROM read_parquet(getvariable('snaps_in'))
-WHERE horizon = '1d' AND within_cap AND volume_usd >= 1000;
+WHERE horizon = '1d'
+  AND (within_cap OR volume_usd >= 1000)
+  AND snap_block_number IS NOT NULL;
 
 CREATE OR REPLACE TEMP TABLE days AS
 SELECT snap_day, row_number() OVER (ORDER BY snap_day) AS day_idx
@@ -173,7 +180,10 @@ FROM (SELECT DISTINCT snap_day FROM snaps);
 CREATE OR REPLACE TEMP MACRO cutoffs(k) AS TABLE
 WITH panel AS (
     SELECT d.snap_day, r.record, w.is_bot, w.bot_group,
-           r.usd >= 1000                                                AS floor_ok
+           -- Every fill is whole cents, so rounding recovers the exact sum; the raw float
+           -- sum of a wallet at exactly $1,000.00 lands either side of 1000 with summation
+           -- order and flips between runs. Same at every floor.
+           round(r.usd, 2) >= 1000                                      AS floor_ok
     FROM recs r
     JOIN days d
       ON d.snap_day >= r.as_of_from
@@ -276,7 +286,7 @@ WITH legs AS (
 tagged AS (
     SELECT
         l.snap_idx, l.wallet_id, l.d, l.usd, l.is_maker,
-        r.n_markets >= 20 AND r.usd >= 1000                             AS q_main,
+        r.n_markets >= 20 AND round(r.usd, 2) >= 1000                   AS q_main,
         r.n_markets >= 20                                               AS q_nofloor,
         r.record,
         w.is_bot,
@@ -381,6 +391,7 @@ COPY (
     )
     SELECT
         s.market_id,
+        s.is_primary,
         s.snap_day,
         coalesce(t.n_legs, 0)                                           AS n_window_legs,
         coalesce(t.usd_all, 0)                                          AS window_usd,
@@ -409,15 +420,20 @@ CREATE OR REPLACE VIEW sig_out AS
 SELECT * FROM read_parquet(getvariable('signal_out'));
 
 
--- Q10 Sizes and reconciliations. wallet_days_nofloor should match D6.3 (299,834,233),
--- bot groups D6.9 (1,316 / 713 / 1,164), and window legs out = 2 x window fills.
+-- Q10 Sizes and reconciliations. On primary snapshot days, wallet_days_nofloor should
+-- match D6.3 (299,834,233); bot groups D6.9 (1,316 / 713 / 1,164); window legs out =
+-- 2 x window fills. The _all columns add the days only 5.1 / 5.4 rows bring.
 SELECT
     (SELECT count(*) FROM recs)                                         AS n_record_rows,
     (SELECT count(DISTINCT wallet_id) FROM recs)                        AS n_record_wallets,
     (SELECT sum(total_compressed_size) / 1e9
      FROM parquet_metadata(getvariable('rec_prefix') || '*.parquet'))   AS rec_gb,
-    (SELECT sum(n_q_nofloor) FROM cuts)                                 AS wallet_days_nofloor,
-    (SELECT sum(n_q_main) FROM cuts)                                    AS wallet_days_main,
+    (SELECT sum(n_q_nofloor) FROM cuts
+     WHERE snap_day IN (SELECT snap_day FROM snaps WHERE is_primary))   AS wallet_days_nofloor,
+    (SELECT sum(n_q_main) FROM cuts
+     WHERE snap_day IN (SELECT snap_day FROM snaps WHERE is_primary))   AS wallet_days_main,
+    (SELECT count(*) FROM cuts)                                         AS n_days_all,
+    (SELECT count(DISTINCT snap_day) FROM snaps WHERE is_primary)       AS n_days_primary,
     (SELECT count(*) FILTER (WHERE bot_group = 'maker') FROM wallets)   AS n_bot_maker,
     (SELECT count(*) FILTER (WHERE bot_group = 'taker') FROM wallets)   AS n_bot_taker,
     (SELECT count(*) FILTER (WHERE bot_group = 'mixed') FROM wallets)   AS n_bot_mixed,
@@ -436,8 +452,10 @@ SELECT
     median(cut_nofloor)                                                 AS med_cut_nofloor
 FROM cuts;
 
--- Q10.2 Smart-volume coverage per variant (D6.6 reports markets with signal 0).
+-- Q10.2 Smart-volume coverage per variant (D6.6 reports markets with signal 0), primary
+-- and extended rows separately; the primary row should match the D6 run (273,360).
 SELECT
+    is_primary,
     count(*)                                                            AS n_markets,
     count(*) FILTER (WHERE smart_usd > 0)                               AS n_smart_main,
     count(*) FILTER (WHERE smart_usd_maker > 0)                         AS n_smart_maker,
@@ -449,7 +467,9 @@ SELECT
     count(*) FILTER (WHERE smart_usd_no_mx > 0)                         AS n_smart_no_mx,
     sum(smart_usd) / sum(window_usd)                                    AS smart_usd_share,
     median(n_smart_wallets) FILTER (WHERE smart_usd > 0)                AS med_smart_wallets
-FROM sig_out;
+FROM sig_out
+GROUP BY is_primary
+ORDER BY is_primary DESC;
 
 
 -- Q11.1 One row per snapshot, signals in [-1, 1], no NULLs, every leg signed and opposite
@@ -551,11 +571,16 @@ SELECT
 FROM chk_pairs c
 LEFT JOIN literal l USING (wallet_id, market_id);
 
--- Q11.4 Independent signal recompute (main) for 100 random markets: record looked up by
--- range (as_of_from <= day <= as_of_to) instead of ASOF, all partitions at once.
--- Expect n_mismatch = 0.
+-- Q11.4 Independent signal recompute (main) for 100 random primary and 100 random
+-- extended (5.1 / 5.4) markets: record looked up by range (as_of_from <= day <=
+-- as_of_to) instead of ASOF, all partitions at once. Expect n_mismatch = 0.
+-- Subqueries because USING SAMPLE applies before WHERE.
 CREATE OR REPLACE TEMP TABLE chk_snaps AS
-SELECT snap_idx, market_id FROM snaps USING SAMPLE reservoir(100 ROWS) REPEATABLE (42);
+SELECT snap_idx, market_id
+FROM (SELECT * FROM snaps WHERE is_primary) USING SAMPLE reservoir(100 ROWS) REPEATABLE (42)
+UNION ALL
+SELECT snap_idx, market_id
+FROM (SELECT * FROM snaps WHERE NOT is_primary) USING SAMPLE reservoir(100 ROWS) REPEATABLE (42);
 
 WITH legs AS (
     SELECT snap_idx, snap_day, maker_id AS wallet_id, maker_d AS d, usd FROM win_fills
@@ -571,7 +596,7 @@ smart AS (
       ON r.wallet_id = l.wallet_id
      AND l.snap_day BETWEEN r.as_of_from AND coalesce(r.as_of_to, DATE '9999-12-31')
     JOIN cuts c ON c.snap_day = l.snap_day
-    WHERE r.n_markets >= 20 AND r.usd >= 1000 AND r.record >= c.cut_main
+    WHERE r.n_markets >= 20 AND round(r.usd, 2) >= 1000 AND r.record >= c.cut_main
 ),
 direct AS (
     SELECT c.market_id,
@@ -650,7 +675,7 @@ WITH per_wallet AS (
 direct AS (
     SELECT snap_day, count(*) AS n_q, quantile_disc(record, 0.9) AS cut
     FROM per_wallet
-    WHERE n_markets >= 20 AND usd >= 1000
+    WHERE n_markets >= 20 AND round(usd, 2) >= 1000
     GROUP BY snap_day
 )
 SELECT
