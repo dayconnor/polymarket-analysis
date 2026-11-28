@@ -1,6 +1,9 @@
 # Polymarket Calibration
 
-**Status: analysis complete. RQ1, RQ2 and RQ3 tested; dashboard and write-up to come.**
+**Status: analysis complete. RQ1, RQ2 and RQ3 tested; write-up to come.**
+**Interactive dashboard: [polymarket-analysis-cd.streamlit.app](https://polymarket-analysis-cd.streamlit.app/)**
+(reads only the committed result tables).
+
 The hypotheses were pre-registered in [`docs/hypotheses.md`](docs/hypotheses.md)
 (`bc6dca3`, 2026-10-21) before any price was compared with any outcome. Every later
 estimation choice was logged there as a dated deviation (D1–D9) before the result

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
 APP_DATA = ROOT / "app" / "data"
 REPO = "https://github.com/dayconnor/polymarket-analysis"
+SITE = "https://polymarket-analysis-cd.streamlit.app/"
 
 st.set_page_config(page_title="Polymarket Calibration", page_icon="📈", layout="wide")
 
@@ -185,6 +186,7 @@ with st.sidebar:
         "Are Polymarket prices calibrated probabilities, and does calibration differ for "
         "crypto markets?\n\n"
         f"- [Code and README]({REPO})\n"
+        f"- [Share this dashboard]({SITE})\n"
         f"- [Pre-registration]({REPO}/blob/main/docs/hypotheses.md) (2026-10-21)\n"
         f"- [Data profile]({REPO}/blob/main/docs/data_profile.md)")
     st.caption(
