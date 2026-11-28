@@ -31,6 +31,15 @@ horizon.
     p = 0.0001). The difference disappears under 5-minute VWAP pricing.
   - The 1-hour event cell is not estimable: 97.6% of its crypto prices are at or
     below 1¢ or at or above 99¢.
+  - **What it means for traders.** Neither significant difference is a tradable
+    edge. The 1-day crypto effect is measured one day before a close that, in
+    deadline markets, happens because the event occurred, a moment no trader can
+    know in advance. The 1-hour template effect belongs to the last trade price
+    and does not survive volume-weighted pricing. Outside those two results,
+    calibration slopes run from 0.93 to 1.10 (1 is perfect) for both groups, so a
+    Polymarket price can be read as a probability in crypto and non-crypto markets
+    alike. That matters to anyone using these prices as forecasts, not only to
+    traders.
 - **RQ2, longshot bias: H2a supported, H2b not.**
   - One-day longshots (below 10¢) are overpriced by 0.25¢ on average (−0.00247
     [−0.00357, −0.00137], Holm p = 0.00002), about 10% of their mean price.
@@ -41,6 +50,19 @@ horizon.
     CI covers 0.
   - The bias does not shrink with liquidity (−0.00033, p = 0.088); the sign is
     opposite to the prediction.
+  - **What it means for traders.** The favourite–longshot bias is the best-known
+    anomaly in betting markets, and on Polymarket it is narrow.
+    - **Where it shows up.** Event-market longshots, politics and sports
+      included, show no reliable bias, so the folk rule "cheap outcomes are
+      overpriced" has no support there.
+    - **Weather is the exception.** At 5–10¢, weather strikes traded at 7.5¢ and
+      won 5.9% of the time. Selling them had an expected value of about 1.7¢ per
+      contract [1.1, 2.2] at the snapshot price, across 84 series.
+    - **It may not be tradable.** The estimate uses last-trade prices, not
+      executable quotes, and a spread of a cent or two would absorb it. The
+      overall bias also loses significance under 5-minute VWAP pricing and
+      reverses above $10,000 of volume, so any edge sits in thin markets with
+      little capacity.
 - **RQ3, smart money: statistically supported, economically negligible.**
   - Net buying by wallets with strong prior records predicts outcomes beyond the
     price (β = +0.038 [0.020, 0.056], p = 0.00006).
@@ -49,6 +71,17 @@ horizon.
   - The information comes from heavy smart selling; heavy smart buying carries
     none.
   - Where smart volume is at least $1,000, the CI covers 0.
+  - **What it means for traders.** Following wallets with strong track records,
+    the premise of copy-trading and whale-tracking tools, adds almost nothing to
+    the price over a 7-day window before a 1-day snapshot.
+    - **Buying is no signal.** Markets that smart wallets bought heavily win no
+      more often than their price implies (−0.04¢ [−0.27, 0.19]).
+    - **Selling is a small one.** Heavy smart selling marks markets that win
+      0.93¢ less often than priced, before any spread or fee. The effect is not
+      established where smart volume is large enough to see and follow.
+    - **Prices already absorb it.** The result is consistent with prices taking
+      in what these wallets know. Faster signals, over minutes or single trades,
+      were not tested.
 
 Every departure from calibration that survives the pre-registered tests is
 confined to particular market formats or price measures, and each weakens or
