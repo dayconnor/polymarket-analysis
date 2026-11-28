@@ -1,6 +1,6 @@
 # Polymarket Calibration
 
-**Status: analysis. RQ1, RQ2 and RQ3 tested; dashboard and write-ups to come.**
+**Status: analysis complete. RQ1, RQ2 and RQ3 tested; dashboard and write-up to come.**
 The hypotheses were pre-registered in [`docs/hypotheses.md`](docs/hypotheses.md)
 (`bc6dca3`, 2026-10-21) before any price was compared with any outcome. Every later
 estimation choice was logged there as a dated deviation (D1–D9) before the result
@@ -13,6 +13,43 @@ other categories. The unit of analysis is the market. Each resolved binary
 market contributes one price snapshot per fixed horizon before resolution
 (1 week, 1 day, 1 hour), taken as the last trade of at least $1 before that
 horizon.
+
+## Key findings
+
+- **RQ1, crypto vs. non-crypto calibration: supported in two of five estimable
+  cells, both qualified by a registered sensitivity.**
+  - One day before resolution, crypto event markets are under-confident relative
+    to non-crypto (slope 1.37 vs. 0.98; interaction +0.389 [0.210, 0.567], Holm
+    p = 0.0001). Without early-closing markets the interaction falls to +0.13
+    [−0.07, 0.32]. In deadline markets the early close is itself set by the
+    outcome.
+  - One hour before resolution, non-crypto template markets are under-confident
+    relative to crypto (slope 1.30 vs. 1.10; −0.202 [−0.293, −0.110], Holm
+    p = 0.0001). The difference disappears under 5-minute VWAP pricing.
+  - The 1-hour event cell is not estimable: 97.6% of its crypto prices are at or
+    below 1¢ or at or above 99¢.
+- **RQ2, longshot bias: H2a supported, H2b not.**
+  - One-day longshots (below 10¢) are overpriced by 0.25¢ on average (−0.00247
+    [−0.00357, −0.00137], Holm p = 0.00002), about 10% of their mean price.
+  - The bias sits in auto-generated ladder markets, mostly weather (about 22%
+    overpriced per price band). Event-market longshots are calibrated.
+  - The sign reverses under a $10,000 volume floor (+0.0043 [0.0020, 0.0067]).
+    With clusters weighted equally, the point estimate is also positive and the
+    CI covers 0.
+  - The bias does not shrink with liquidity (−0.00033, p = 0.088); the sign is
+    opposite to the prediction.
+- **RQ3, smart money: statistically supported, economically negligible.**
+  - Net buying by wallets with strong prior records predicts outcomes beyond the
+    price (β = +0.038 [0.020, 0.056], p = 0.00006).
+  - Moving the signal from 0 to +1 changes the win probability by 0.50
+    percentage points.
+  - The information comes from heavy smart selling; heavy smart buying carries
+    none.
+  - Where smart volume is at least $1,000, the CI covers 0.
+
+Every departure from calibration that survives the pre-registered tests is
+confined to particular market formats or price measures, and each weakens or
+reverses under at least one registered sensitivity.
 
 ## Research questions
 
@@ -43,6 +80,14 @@ they are overconfident.
 | 1 day | event | 0.980 | 1.369 | **+0.389 [0.210, 0.567]** | **0.0001** |
 | 1 hour | template | 1.304 | 1.103 | **−0.202 [−0.293, −0.110]** | **0.0001** |
 | 1 hour | event | — | — | not estimable | — |
+
+![Calibration curves by horizon and format, crypto vs. non-crypto](results/rq1_curves.png)
+
+*Calibration curves for primary snapshots: mean price vs. observed win frequency in
+ten equal-width bins, with cluster-bootstrap 95% CIs (D7.4–D7.5). Hollow points are
+bins with fewer than 30 markets. The diagonal marks perfect calibration. The
+symmetrized version, which uses each market as both (p, y) and (1 − p, 1 − y), is
+`results/rq1_curves_symmetrized.png`.*
 
 The confirmatory result comes with four caveats:
 
@@ -248,7 +293,8 @@ docs/                 data profile, pre-registration, classifier codebook
 ```
 
 All SQL lives in numbered `.sql` files, one `-- Qn` comment per query. Python
-fetches API and chain data and handles the statistics and figures.
+fetches API and chain data and handles the statistics and figures. Code is under
+the MIT license ([`LICENSE`](LICENSE)); the dataset carries its own MIT license.
 
 ## Reproducing
 
