@@ -7,6 +7,7 @@ so the hosted app shows exactly the numbers in the README.
 Run locally:  .venv/bin/streamlit run app/streamlit_app.py
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +43,38 @@ def theme():
         return PALETTE["dark" if st.context.theme.type == "dark" else "light"]
     except Exception:
         return PALETTE["light"]
+
+
+# Streamlit has no Python API to switch themes, and a [theme] in config.toml would override
+# the viewer's choice. So this writes the frontend's own stored preference (localStorage
+# "stActiveTheme-<path>-v2", internal to Streamlit 1.67: recheck if Streamlit is upgraded)
+# and reloads. First visit defaults to Light; reloads only if the OS had picked Dark.
+THEME_JS = """<script>
+(() => {
+  try {
+    const key = `stActiveTheme-${window.location.pathname}-v2`;
+    const target = __TARGET__;
+    const stored = localStorage.getItem(key);
+    if (target) {
+      localStorage.setItem(key, JSON.stringify(target));
+      window.location.reload();
+    } else if (stored === null || stored === '"System"') {
+      localStorage.setItem(key, '"Light"');
+      if (__IS_DARK__) window.location.reload();
+    }
+  } catch (e) { /* storage blocked: keep Streamlit's default */ }
+})();
+</script>"""
+
+
+def theme_toggle(container):
+    dark = theme() is PALETTE["dark"]
+    target = None
+    if container.button("Light mode" if dark else "Dark mode", key="theme_toggle",
+                        icon=":material/light_mode:" if dark else ":material/dark_mode:"):
+        target = "Light" if dark else "Dark"
+    st.html(THEME_JS.replace("__TARGET__", json.dumps(target))
+            .replace("__IS_DARK__", json.dumps(dark)), unsafe_allow_javascript=True)
 
 
 def color(entity):
@@ -159,7 +192,10 @@ with st.sidebar:
         "by notebooks 01–03 and sql/04_dashboard. Data: SII-WANGZJ/Polymarket_data, trades "
         "through 2026-10-04.")
 
-st.title("Polymarket Calibration")
+title_col, toggle_col = st.columns([5, 1], vertical_alignment="center")
+title_col.title("Polymarket Calibration")
+with toggle_col:
+    theme_toggle(st.container(horizontal_alignment="right"))
 tab_over, tab_rq1, tab_rq2, tab_rq3, tab_method = st.tabs(
     ["Overview", "RQ1 Crypto vs. non-crypto", "RQ2 Longshots", "RQ3 Smart money", "Method"])
 
