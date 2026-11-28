@@ -53,7 +53,8 @@ def main(argv):
     con = duckdb.connect()
     token = os.environ.get("HF_TOKEN")
     if token:
-        con.execute(f"CREATE SECRET hf_token (TYPE huggingface, TOKEN '{token}')")
+        escaped = token.replace("'", "''")
+        con.execute(f"CREATE SECRET hf_token (TYPE huggingface, TOKEN '{escaped}')")
     for pair in args.set:
         name, _, value = pair.partition("=")
         if not name.isidentifier():

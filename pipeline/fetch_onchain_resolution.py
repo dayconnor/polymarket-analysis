@@ -32,8 +32,10 @@ typed and compared with Gamma in a later SQL file.
 
 import argparse
 import csv
+import http.client
 import json
 import os
+import random
 import sys
 import threading
 import time
@@ -137,10 +139,11 @@ class Rpc:
             try:
                 with urllib.request.urlopen(req, timeout=60) as resp:
                     out = json.load(resp)
-            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
+                    http.client.IncompleteRead, json.JSONDecodeError, ConnectionResetError) as e:
                 if isinstance(e, urllib.error.HTTPError) and e.code not in (429, 500, 502, 503, 504):
                     raise RuntimeError(f"{method}: HTTP {e.code}") from None
-                time.sleep(2 ** attempt)
+                time.sleep(2 ** attempt + random.random())
                 continue
             with self.lock:
                 self.calls += 1
@@ -150,7 +153,7 @@ class Rpc:
                 # "account ... is not found" is a transient node-side state miss on Alchemy
                 # (the same call succeeds on retry), not a property of the block.
                 if err.get("code") == 429 or "rate" in msg or "is not found" in msg:
-                    time.sleep(2 ** attempt)
+                    time.sleep(2 ** attempt + random.random())
                     continue
                 raise RuntimeError(f"{method}: {err}")
             return out["result"]
@@ -236,7 +239,7 @@ def fetch_one(rpc, row, latest):
         blk = rpc("eth_getBlockByNumber", [hex(block), False])
         out["resolution_ts_unix"] = int(blk["timestamp"], 16)
     except Exception as e:
-        out["error"] = str(e)[:500]
+        out["error"] = str(e).replace(rpc.url, "<POLYGON_RPC_URL>")[:500]
     return out
 
 
@@ -262,7 +265,7 @@ def token_one(rpc, row, collaterals):
                     hits.append((name, names[pos]))
             out[f"slot{index_set}_matches"] = [f"{c}:{t}" for c, t in hits]
     except Exception as e:
-        out["error"] = str(e)[:500]
+        out["error"] = str(e).replace(rpc.url, "<POLYGON_RPC_URL>")[:500]
     return out
 
 
@@ -272,11 +275,15 @@ def run_tokens(rpc, limit, workers):
     with open(TOKENS_PATH) as f:
         rows = list(csv.DictReader(f))[:limit]
     print(f"{len(rows)} markets; wrapped collateral {wcol}")
-    with open(TOKENS_OUT, "w") as f, ThreadPoolExecutor(workers) as pool:
+    os.makedirs(os.path.dirname(TOKENS_OUT), exist_ok=True)
+    tmp = TOKENS_OUT + ".tmp"
+    with open(tmp, "w") as f, ThreadPoolExecutor(workers) as pool:
         for i, out in enumerate(pool.map(lambda r: token_one(rpc, r, collaterals), rows), 1):
             f.write(json.dumps(out) + "\n")
+            f.flush()
             if i % 100 == 0 or i == len(rows):
                 print(f"  {i}/{len(rows)}  rpc calls {rpc.calls}")
+    os.replace(tmp, TOKENS_OUT)
 
 
 def main(argv):

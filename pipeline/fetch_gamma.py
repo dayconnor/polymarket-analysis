@@ -19,6 +19,7 @@ Gamma is live data, not pinned, so every row records fetched_at.
 
 import argparse
 import csv
+import http.client
 import json
 import os
 import random
@@ -86,7 +87,8 @@ def get(ids, closed):
         except urllib.error.HTTPError as e:
             if e.code not in (429, 500, 502, 503, 504):
                 raise
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, TimeoutError, http.client.IncompleteRead,
+                json.JSONDecodeError, ConnectionResetError):
             pass
         time.sleep(2 ** attempt + random.random())
     raise RuntimeError(f"Gave up after {RETRIES} tries on ids {ids[0]}..{ids[-1]}")
@@ -114,9 +116,11 @@ def fetch_batch(ids):
         missing = [i for i in ids if i not in rows]
         if not missing:
             break
+        missing_set = set(missing)
         for m in get(missing, closed):
-            if m["id"] in missing:
-                rows[m["id"]] = row(m, closed, fetched_at)
+            mid = str(m["id"])
+            if mid in missing_set:
+                rows[mid] = row(m, closed, fetched_at)
     for i in ids:
         if i not in rows:
             rows[i] = {c: None for c in COLUMNS} | {"id": i, "found": False, "fetched_at": fetched_at}
