@@ -41,47 +41,53 @@ horizon.
     alike. That matters to anyone using these prices as forecasts, not only to
     traders.
 - **RQ2, longshot bias: H2a supported, H2b not.**
-  - One-day longshots (below 10¢) are overpriced by 0.25¢ on average (−0.00247
-    [−0.00357, −0.00137], Holm p = 0.00002), about 10% of their mean price.
-  - The bias sits in auto-generated ladder markets, mostly weather (about 22%
+  - One-day longshots (below 10¢) are overpriced by 0.23¢ on average (−0.00232
+    [−0.00338, −0.00125], Holm p = 0.00004), about 10% of their mean price.
+  - The bias sits in auto-generated ladder markets, mostly weather (about 21–23%
     overpriced per price band). Event-market longshots are calibrated.
-  - The sign reverses under a $10,000 volume floor (+0.0043 [0.0020, 0.0067]).
-    With clusters weighted equally, the point estimate is also positive and the
-    CI covers 0.
-  - The bias does not shrink with liquidity (−0.00033, p = 0.088); the sign is
-    opposite to the prediction.
+  - The sign reverses under a $10,000 lifetime-volume floor (+0.0043
+    [0.0020, 0.0067]), but an exploratory check (`02c`) shows that reversal is
+    post-snapshot collider bias: under a pre-snapshot liquidity floor, longshots
+    stay overpriced (−0.16¢ at $1k, −0.19¢ at $10k). With clusters weighted
+    equally, the point estimate is positive (+0.0028 [0.0002, 0.0053]).
+  - The bias does not shrink with liquidity (−0.00034, p = 0.078); the sign is
+    opposite to the prediction, though it turns slightly positive (+0.00024, CI
+    covers 0) once post-snapshot volume selection is removed (`02c`).
   - **What it means for traders.** The favourite–longshot bias is the best-known
     anomaly in betting markets, and on Polymarket it is narrow.
     - **Where it shows up.** Event-market longshots, politics and sports
       included, show no reliable bias, so the folk rule "cheap outcomes are
       overpriced" has no support there.
-    - **Weather is the exception.** At 5–10¢, weather strikes traded at 7.5¢ and
-      won 5.9% of the time. Selling them had an expected value of about 1.7¢ per
-      contract [1.1, 2.2] at the snapshot price, across 84 series.
+    - **Weather is the exception.** At 5–10¢, weather strikes traded at 7.3¢ and
+      won 5.8% of the time. Selling them had an expected value of about 1.5¢ per
+      contract [1.0, 2.1] at the snapshot price, across 79 series.
     - **It may not be tradable.** The estimate uses last-trade prices, not
       executable quotes, and a spread of a cent or two would absorb it. The
-      overall bias also loses significance under 5-minute VWAP pricing and
-      reverses above $10,000 of volume, so any edge sits in thin markets with
-      little capacity.
-- **RQ3, smart money: statistically supported, economically negligible.**
+      overall bias also loses significance under 5-minute VWAP pricing, so any
+      edge sits in thin markets with little capacity.
+- **RQ3, smart money: statistically supported, economically small.**
   - Net buying by wallets with strong prior records predicts outcomes beyond the
     price (β = +0.038 [0.020, 0.056], p = 0.00006).
-  - Moving the signal from 0 to +1 changes the win probability by 0.49
-    percentage points.
-  - The information comes from heavy smart selling; heavy smart buying carries
-    none.
+  - Moving the registered CLOB-USD signal from 0 to +1 changes the win
+    probability by 0.49 percentage points, with information in heavy smart
+    selling only.
+  - An exploratory check (`03b`) replacing CLOB USD with economic capital at
+    risk (invariant to buy-YES vs. split+sell-NO) nearly doubles the slope
+    (β = +0.070 [0.053, 0.086], +0.91 pp) and makes the signal two-sided.
   - Where smart volume is at least $1,000, the CI covers 0.
   - **What it means for traders.** Following wallets with strong track records,
-    the premise of copy-trading and whale-tracking tools, adds almost nothing to
-    the price over a 7-day window before a 1-day snapshot.
-    - **Buying is no signal.** Markets that smart wallets bought heavily win no
-      more often than their price implies (−0.04¢ [−0.27, 0.19]).
-    - **Selling is a small one.** Heavy smart selling marks markets that win
-      0.93¢ less often than priced, before any spread or fee. The effect is not
-      established where smart volume is large enough to see and follow.
-    - **Prices already absorb it.** The result is consistent with prices taking
-      in what these wallets know. Faster signals, over minutes or single trades,
-      were not tested.
+    the premise of copy-trading and whale-tracking tools, adds less than a
+    percentage point to the price over a 7-day window before a 1-day snapshot.
+    - **Registered CLOB-USD signal.** Heavy buying carries no edge (−0.04¢
+      [−0.27, 0.19]); heavy selling marks markets that win 0.93¢ less often than
+      priced, before any spread or fee.
+    - **Risk-capital weighting helps, but remains small.** Weighting smart
+      trades by capital at risk recovers a modest two-sided signal (−0.91¢ on
+      heavy selling, +0.35¢ on heavy buying), still below a cent before spreads
+      and fees, and not established where smart volume is large enough to follow.
+    - **Prices already absorb most of it.** The result is consistent with prices
+      taking in most of what these wallets know. Faster signals, over minutes or
+      single trades, were not tested.
 
 Every departure from calibration that survives the pre-registered tests is
 confined to particular market formats or price measures, and each weakens or
@@ -155,33 +161,45 @@ The confirmatory result comes with four caveats:
 ### RQ2: longshot bias and liquidity
 
 - **H2a supported.** One-day longshots (the cheaper side, priced below 10¢;
-  144,420 snapshots in 11,067 clusters) are overpriced by 0.25¢ on average,
-  −0.00247 [−0.00357, −0.00137], Holm p = 0.00002. That is about 10% of the mean
-  longshot price of 2.4¢.
+  141,440 snapshots in 10,870 clusters) are overpriced by 0.23¢ on average,
+  −0.00232 [−0.00338, −0.00125], Holm p = 0.00004. That is about 10% of the mean
+  longshot price of 2.2¢.
 - **H2b not supported, and the sign is opposite to the prediction.** The
-  liquidity coefficient is −0.00033 [−0.00072, 0.00005], p = 0.088. The bias
-  does not shrink in deeper markets; it is significantly larger there in four
-  sensitivities (5.2, 5.5, 5.7, 2026). Liquidity quintiles are not monotone: the
-  thinnest quintile shows no bias.
+  liquidity coefficient is −0.00034 [−0.00072, 0.00004], p = 0.078. The bias
+  does not shrink in deeper markets; the H2b 95% CI lies below 0 in five
+  sensitivities (5.2, 5.5, 5.7, 2023, 2026; sensitivities are untested per
+  Section 5). Liquidity quintiles are not monotone: the thinnest quintile shows
+  no bias.
 
 The H2a result is narrower than "Polymarket longshots are overpriced":
 
-- **It sits in auto-generated ladder markets.** Event longshots average −0.0001
-  [−0.0022, 0.0024]; template longshots average −0.0037 [−0.0048, −0.0026].
+- **It sits in auto-generated ladder markets.** Event longshots average +0.0001
+  [−0.0021, 0.0024]; template longshots average −0.0036 [−0.0046, −0.0025].
 - **It is not a tick-floor artifact.** An exploratory split by price band
   (`notebooks/02b`, `results/rq2_price_bands.png`) shows:
   - event longshots are calibrated in every band above the 0.1¢ minimum tick;
-  - template longshots are overpriced in every band from 0.6¢ up, by 15–24% of
+  - template longshots are overpriced in every band from 0.6¢ up, by 14–24% of
     the price;
-  - weather ladders carry most of it: about 22% overpriced per band (at 5–10¢,
-    5.9% wins against a 7.5% price). Sports and politics show no reliable bias.
+  - weather ladders carry most of it: about 21–23% overpriced per band (at
+    5–10¢, 5.8% wins against a 7.3% price). Sports and politics show no reliable
+    bias.
 - **The weighting rule decides the sign.** H2a weights each snapshot equally with
   cluster-robust inference (D8.1, fixed before any RQ2 outcome was computed).
-  Weighting each cluster equally gives +0.0025 [−0.0001, 0.0051], because 95% of
-  clusters are event markets. The average longshot *snapshot* is overpriced; the
-  average longshot *market series* is not.
-- **It is fragile to the volume floor.** With a $10,000 floor (5.2) the sign flips
-  to +0.0043 [0.0020, 0.0067]. With 5-minute VWAP pricing (5.3) the CI covers 0.
+  Weighting each cluster equally gives +0.0028 [+0.0002, +0.0053] (p = 0.031),
+  because 95% of clusters are event markets. The average longshot *snapshot* is
+  overpriced; the average longshot *market series* is not.
+- **The 5.2 sign flip is post-snapshot collider bias.** Under the registered
+  $10,000 lifetime-volume floor (5.2), H2a flips to +0.0043 [0.0020, 0.0067]
+  and H2b drops to −0.00244 [−0.00337, −0.00152] (where the negative slope
+  pulls the positive H2a bias back toward zero). An exploratory follow-up
+  (`notebooks/02c`, `results/rq2_collider_floors.csv`) shows why: among
+  longshots with under $10,000 of pre-snapshot liquidity, 44.1% of winners
+  cross $10,000 of lifetime volume afterward versus 27.5% of losers (median
+  post-snapshot volume $7,197 vs. $3,487). Replacing lifetime `volume_usd` with
+  pre-snapshot `liquidity_usd` eliminates the reversal: H2a stays negative at
+  both $1,000 (−0.00162 [−0.00301, −0.00022]) and $10,000 (−0.00185
+  [−0.00377, +0.00007]), and H2b becomes a clean null (+0.00024 and +0.00009,
+  CIs covering 0). With 5-minute VWAP pricing (5.3) the H2a CI still covers 0.
 
 ![1-day longshot win rate against price by price band and format](results/rq2_price_bands.png)
 
@@ -213,12 +231,22 @@ term or the clustering. Adding a template intercept and price slope (+0.040),
 price-bin indicators (+0.039), `event_id` clustering (CI [0.023, 0.053]) or
 dropping early closes (+0.036) leaves it intact. Four limits apply:
 
-- **It is one-sided.** By signal bin, mean (won − price) is −0.93¢
-  [−1.26, −0.59] under heavy smart selling ([−1, −0.5)) and +0.53¢
-  [0.19, 0.87] under mild buying ([0, 0.5)). Under heavy smart buying ([0.5, 1],
-  103,491 markets) it is −0.04¢ [−0.27, 0.19]. The strongest buy signals carry no
-  measurable information; most of the slope comes from heavy selling. The bins
-  are descriptive.
+- **It is one-sided under CLOB-USD weighting, but two-sided under risk-capital
+  weighting.** Under the registered CLOB-USD signal, mean (won − price) is
+  −0.93¢ [−1.26, −0.59] under heavy smart selling ([−1, −0.5)) and +0.53¢
+  [0.19, 0.87] under mild buying ([0, 0.5)), while heavy smart buying
+  ([0.5, 1], 103,491 markets) is −0.04¢ [−0.27, 0.19]. An exploratory follow-up
+  (`sql/03_marts/06_rq3_risk_capital.sql`, `notebooks/03b`) tests why: on the
+  CTF, buying 1 token1 at p and splitting+selling 1 token2 at 1 − p have
+  identical P&L and capital at risk (p), but CLOB `usd_amount` records p for
+  the buy and 1 − p for the sell. Recomputing track records and signal weights
+  with economic capital at risk (83.4% overlap with the CLOB-USD top decile)
+  nearly doubles the slope to **+0.070 [+0.053, +0.086]** (AME +0.91 pp), with
+  most of the gain coming from signal weighting (+0.063 with CLOB wallets) and
+  both tails moving in the predicted direction (heavy selling −0.91¢
+  [−1.12, −0.70], mild buying +1.21¢ [+0.63, +1.80], heavy buying +0.35¢
+  [+0.07, +0.64]). Share-notional weighting (`token_amount`) stays close to the
+  registered result (+0.035 [+0.018, +0.052]).
 - **It is not established where the smart money is substantial.** 27.5% of
   markets with smart volume have a signal of exactly ±1, which can reflect a few
   dollars. With at least $1,000 of smart volume (refit A4; 43,373 markets) the
@@ -279,12 +307,12 @@ the pre-registration, is in [`docs/data_profile.md`](docs/data_profile.md).
 | Marts | `03_marts/03_mart_analysis.sql` | The analysis frame: 1,925,812 snapshots joined to outcome, class and signal. The first file to join outcomes to prices; prints counts only. All six RQ1 cells have ≥ 161 clusters per side. |
 | Marts | `03_marts/04_mart_vwap.sql` | 5-minute token-weighted VWAP before each horizon for sensitivity 5.3 (available for 14% of 1-day primary snapshots, 49,703 of 351,535). The trade sets match the price paths for 192,689 of 192,689 windows. |
 | Analysis | `notebooks/01`, `01b` | RQ1 tests, descriptives, calibration curves, sensitivities; exploratory early-close check. |
-| Analysis | `notebooks/02`, `02b` | RQ2 tests, descriptives, sensitivities; exploratory price-band split. |
-| Analysis | `notebooks/03` | RQ3 confirmatory and secondary tests, signal-bin descriptives, refits, sensitivities. |
+| Analysis | `notebooks/02`, `02b`, `02c` | RQ2 tests, descriptives, sensitivities; exploratory price-band split and post-snapshot collider check. |
+| Analysis | `notebooks/03`, `03b` | RQ3 confirmatory and secondary tests, signal-bin descriptives, refits, sensitivities; exploratory risk-capital denominator check (`06_rq3_risk_capital.sql`). |
 
-Each confirmatory notebook runs a planted control on simulated outcomes before the
-real outcome is loaded. Notebooks 02 and 03 keep the outcome column unread behind a
-`RUN_CONFIRMATORY` switch until the protocol entry they implement is committed.
+Notebooks 02 and 03 run a planted control on simulated outcomes and keep the
+outcome column unread behind a `RUN_CONFIRMATORY` switch until the protocol
+entry they implement is committed.
 
 ## Validation
 
@@ -338,7 +366,7 @@ sql/03_marts/         snapshots, wallet track records and signal, analysis frame
 sql/04_dashboard/     small aggregate exports for the dashboard
 pipeline/             SQL runner, Gamma and on-chain fetchers
 app/                  Streamlit dashboard; reads results/ and app/data/ only
-notebooks/            RQ1-RQ3 tests (01-03) and exploratory follow-ups (01b, 02b)
+notebooks/            RQ1-RQ3 tests (01-03) and exploratory follow-ups (01b, 02b, 02c, 03b)
 results/              tables (CSV) and figures written by the notebooks
 labels/               hand-labeled classifier validation sample
 docs/                 data profile, pre-registration, classifier codebook
@@ -383,7 +411,8 @@ $R --set run_day=all sql/02_intermediate/09_int_wallet_markets.sql
 $R --set run_day=all sql/03_marts/02_mart_wallet_signal.sql
 $R sql/03_marts/03_mart_analysis.sql
 $R --set run_day=all sql/03_marts/04_mart_vwap.sql
-for nb in 01_rq1_calibration 01b_rq1_early_close 02_rq2_longshot 02b_rq2_price_bands 03_rq3_smart_money; do
+$R sql/03_marts/06_rq3_risk_capital.sql
+for nb in 01_rq1_calibration 01b_rq1_early_close 02_rq2_longshot 02b_rq2_price_bands 02c_rq2_collider 03_rq3_smart_money 03b_rq3_denominator; do
   .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/$nb.ipynb
 done
 $R sql/04_dashboard/01_dash_calibration.sql

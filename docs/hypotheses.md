@@ -568,3 +568,22 @@ and 0.06 (H2b); the D9.5 control gives 96.5% (null) and 93.5% (planted)
 coverage, 98.5% rejection, a 3.5% null rate and an MDE of 0.021. D8.7 and D9.5
 are kept as written, since they record what was seen before the corresponding
 outcomes were computed. This note was written after all results.
+
+**Note (2026-11-27; `1 − price` floating-point boundary fix, not a deviation).**
+`03_stg_trades.sql` converted `token2` fills with `1 - price` in IEEE-754
+float64 without rounding, and notebooks 01, 02 and 02b computed `1 - p` the same
+way. Because `1.0 - 0.90 = 0.09999999999999998 < 0.10` and `1.0 - 0.80 =
+0.19999999999999996 < 0.20`, exact 10¢ `token2` snapshots (2,087 rows from
+staging plus 893 rows from `1 - 0.90` in Python; 2,980 in all) leaked into the
+RQ2 `< 0.10` longshot sample while exact 10¢ `token1` snapshots (1,638 rows)
+were excluded, violating the side-agnostic T6 rule. Exact 10¢ and 20¢ `token2`
+fills also shifted one bin down in RQ1 calibration curves. Every raw CLOB price
+has at most 6 decimal places (USDC precision), so `03_stg_trades.sql`,
+`03_mart_analysis.sql` and notebooks 01, 02 and 02b now round prices and
+`1 - price` to 6 decimals. No definition or threshold changes; every RQ1 and
+RQ3 test estimate is unchanged to 10⁻¹², and RQ2 conclusions are unchanged
+(141,440 1-day longshots in 10,870 clusters; H2a −0.00232 [−0.00338, −0.00125],
+Holm p = 0.00004; H2b −0.00034 [−0.00072, +0.00004], Holm p = 0.078; unweighted
+cluster-mean H2a +0.00276 [+0.00025, +0.00527], p = 0.031). Also fixed:
+untestable 2024 cells (< 30 clusters) in `results/rq1_sensitivities.csv` now
+carry `estimable = False` and a `testable` column. Written after all results.
