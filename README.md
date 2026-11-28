@@ -19,7 +19,7 @@ horizon.
 - **RQ1, crypto vs. non-crypto calibration: supported in two of five estimable
   cells, both qualified by a registered sensitivity.**
   - One day before resolution, crypto event markets are under-confident relative
-    to non-crypto (slope 1.37 vs. 0.98; interaction +0.389 [0.210, 0.567], Holm
+    to non-crypto (slope 1.37 vs. 0.98; interaction +0.388 [0.210, 0.567], Holm
     p = 0.0001). Without early-closing markets the interaction falls to +0.13
     [−0.07, 0.32]. In deadline markets the early close is itself set by the
     outcome.
@@ -41,7 +41,7 @@ horizon.
 - **RQ3, smart money: statistically supported, economically negligible.**
   - Net buying by wallets with strong prior records predicts outcomes beyond the
     price (β = +0.038 [0.020, 0.056], p = 0.00006).
-  - Moving the signal from 0 to +1 changes the win probability by 0.50
+  - Moving the signal from 0 to +1 changes the win probability by 0.49
     percentage points.
   - The information comes from heavy smart selling; heavy smart buying carries
     none.
@@ -77,7 +77,7 @@ they are overconfident.
 | 1 week | template | 0.975 | 0.927 | −0.048 [−0.210, 0.114] | 0.559 |
 | 1 week | event | 0.964 | 1.105 | +0.141 [0.003, 0.279] | 0.135 |
 | 1 day | template | 1.083 | 1.023 | −0.060 [−0.119, −0.000] | 0.135 |
-| 1 day | event | 0.980 | 1.369 | **+0.389 [0.210, 0.567]** | **0.0001** |
+| 1 day | event | 0.980 | 1.369 | **+0.388 [0.210, 0.567]** | **0.0001** |
 | 1 hour | template | 1.304 | 1.103 | **−0.202 [−0.293, −0.110]** | **0.0001** |
 | 1 hour | event | — | — | not estimable | — |
 
@@ -147,13 +147,19 @@ The H2a result is narrower than "Polymarket longshots are overpriced":
 - **It is fragile to the volume floor.** With a $10,000 floor (5.2) the sign flips
   to +0.0043 [0.0020, 0.0067]. With 5-minute VWAP pricing (5.3) the CI covers 0.
 
+![1-day longshot win rate against price by price band and format](results/rq2_price_bands.png)
+
+*Exploratory (`notebooks/02b`). Win rate against mean longshot price per band, by
+format, with the CR1 95% CI of the bias; both axes log-scaled, the grey line is perfect
+calibration. Template points sit below the line from 0.6¢ up; event points do not.*
+
 ### RQ3: smart money
 
 **Supported statistically; economically negligible.** In `token1_won ~ logit(p) +
 signal` over the 351,535 primary 1-day markets (17,291 clusters), the signal
 coefficient is +0.038 [0.020, 0.056], p = 0.00006. The signal is the net share of
 smart-wallet USD bought on the token1 side in the 7 days to the snapshot, from −1
-to +1 (D6). Moving it from 0 to +1 raises the win probability by 0.50 percentage
+to +1 (D6). Moving it from 0 to +1 raises the win probability by 0.49 percentage
 points at the market's own price. Among markets with smart volume the median
 |signal| is 0.76, so a typical market moves by about 0.4 points. The estimate is
 1.8 times the minimum detectable effect (0.021, planted control D9.5), so it is not
@@ -190,6 +196,12 @@ dropping early closes (+0.036) leaves it intact. Four limits apply:
   [−0.012, 0.066]. The coefficient is +0.053 with no volume floor (5.1) and +0.026
   [0.004, 0.048] with a $10,000 floor (5.2). This fits informed wallets mattering
   most where prices are thin, but that reading was not tested.
+
+![Mean of won minus price by smart-money signal bin](results/rq3_signal_bins.png)
+
+*Descriptive. Mean of (won − price) in cents per signal bin for the primary 1-day
+markets, with CR1 95% CIs. The confirmatory slope rests mostly on the heavy-selling
+bin; heavy buying ([0.5, 1]) is indistinguishable from 0.*
 
 The planted control (real prices, signals and clusters; simulated outcomes)
 covered the truth in 95% of 200 draws per scenario, detected β = 0.03 in 95.5%,
@@ -285,7 +297,9 @@ sql/01_staging/       typed trades, resolved binary markets, data-quality checks
 sql/02_intermediate/  price paths, classifier and its validation, resolution check,
                       wallet trades and positions
 sql/03_marts/         snapshots, wallet track records and signal, analysis frame, VWAP
+sql/04_dashboard/     small aggregate exports for the dashboard
 pipeline/             SQL runner, Gamma and on-chain fetchers
+app/                  Streamlit dashboard; reads results/ and app/data/ only
 notebooks/            RQ1-RQ3 tests (01-03) and exploratory follow-ups (01b, 02b)
 results/              tables (CSV) and figures written by the notebooks
 labels/               hand-labeled classifier validation sample
@@ -334,6 +348,8 @@ $R --set run_day=all sql/03_marts/04_mart_vwap.sql
 for nb in 01_rq1_calibration 01b_rq1_early_close 02_rq2_longshot 02b_rq2_price_bands 03_rq3_smart_money; do
   .venv/bin/jupyter nbconvert --to notebook --execute --inplace notebooks/$nb.ipynb
 done
+$R sql/04_dashboard/01_dash_calibration.sql
+.venv/bin/streamlit run app/streamlit_app.py
 ```
 
 `03_class_validation_sample.sql` is omitted on purpose: it rewrites
