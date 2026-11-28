@@ -87,10 +87,11 @@ def load(name, folder=RESULTS):
     return pd.read_csv(folder / f"{name}.csv")
 
 
-def ci(est, lo, hi, scale=1.0, digits=3):
+def ci(est, lo, hi, scale=1.0, digits=3, signed=True):
+    fmt = f"+.{digits}f" if signed else f".{digits}f"
     if pd.isna(lo) or pd.isna(hi):
-        return f"{est * scale:+.{digits}f}"
-    return f"{est * scale:+.{digits}f} [{lo * scale:.{digits}f}, {hi * scale:.{digits}f}]"
+        return f"{est * scale:{fmt}}"
+    return f"{est * scale:{fmt}} [{lo * scale:.{digits}f}, {hi * scale:.{digits}f}]"
 
 
 def base_layout(fig, x_title, y_title, height=460):
@@ -109,7 +110,7 @@ def show(fig, data=None):
             st.dataframe(data, hide_index=True, width="stretch")
 
 
-def calibration_fig(series):
+def calibration_fig(series, show_ci=True):
     """series: list of (entity, frame with mean_price, win_rate, lo, hi, n)."""
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", hoverinfo="skip",
@@ -117,17 +118,31 @@ def calibration_fig(series):
     for entity, d in series:
         d = d.sort_values("mean_price")
         small = d["n"] < 30
+        if show_ci:
+            no_ci = d["lo"].isna() | d["hi"].isna()
+            ci_txt = [
+                "n/a" if miss else f"[{lo:.3f}, {hi:.3f}]"
+                for miss, lo, hi in zip(no_ci, d["lo"], d["hi"])
+            ]
+            err = dict(type="data", symmetric=False, thickness=1.2, width=3,
+                       array=(d["hi"] - d["win_rate"]).fillna(0),
+                       arrayminus=(d["win_rate"] - d["lo"]).fillna(0))
+            cdata = np.column_stack([d["n"].to_numpy(), np.array(ci_txt, dtype=object)])
+            ht = (f"<b>{entity}</b><br>mean price %{{x:.3f}}<br>win rate %{{y:.3f}}"
+                  "<br>95% CI %{customdata[1]}"
+                  "<br>%{customdata[0]:,} markets<extra></extra>")
+        else:
+            no_ci = pd.Series(False, index=d.index)
+            err = None
+            cdata = np.column_stack([d["n"].to_numpy()])
+            ht = (f"<b>{entity}</b><br>mean price %{{x:.3f}}<br>win rate %{{y:.3f}}"
+                  "<br>%{customdata[0]:,} markets<extra></extra>")
         fig.add_trace(go.Scatter(
             x=d["mean_price"], y=d["win_rate"], name=entity, mode="lines+markers",
             line=dict(color=color(entity), width=2),
             marker=dict(size=9, color=color(entity), symbol=[
-                SYMBOL[entity] + ("-open" if s else "") for s in small]),
-            error_y=dict(type="data", symmetric=False, thickness=1.2, width=3,
-                         array=d["hi"] - d["win_rate"], arrayminus=d["win_rate"] - d["lo"]),
-            customdata=np.c_[d["n"], d["lo"], d["hi"]],
-            hovertemplate=(f"<b>{entity}</b><br>mean price %{{x:.3f}}<br>win rate %{{y:.3f}}"
-                           "<br>95% CI [%{customdata[1]:.3f}, %{customdata[2]:.3f}]"
-                           "<br>%{customdata[0]:,} markets<extra></extra>")))
+                SYMBOL[entity] + ("-open" if (s or nc) else "") for s, nc in zip(small, no_ci)]),
+            error_y=err, customdata=cdata, hovertemplate=ht))
     base_layout(fig, "mean price (probability)", "observed win frequency", height=520)
     # constrain="domain" shrinks the plot area to stay square instead of widening the range.
     fig.update_xaxes(range=[-0.02, 1.02], constrain="domain")
@@ -154,7 +169,7 @@ def forest_fig(rows, x_title, zero=0.0, height=None):
     return fig
 
 
-def dot_fig(frame, x_col, order, group_col, y_col, lo_col, hi_col, y_title, hover_fmt):
+def dot_fig(frame, x_col, order, group_col, y_col, lo_col, hi_col, y_title, val_fmt, ci_digits):
     """Categorical x with groups side by side; hollow markers where there is no CI."""
     fig = go.Figure()
     fig.add_hline(y=0, line=dict(color=theme()["ref"], width=1))
@@ -163,7 +178,11 @@ def dot_fig(frame, x_col, order, group_col, y_col, lo_col, hi_col, y_title, hove
     for i, g in enumerate(groups):
         d = frame[frame[group_col] == g].set_index(x_col).reindex(order).dropna(subset=[y_col])
         x = np.array([order.index(k) for k in d.index]) + (i - (len(groups) - 1) / 2) * width
-        no_ci = d[lo_col].isna()
+        no_ci = d[lo_col].isna() | d[hi_col].isna()
+        ci_txt = [
+            "n/a" if miss else f"[{lo:.{ci_digits}f}, {hi:.{ci_digits}f}]"
+            for miss, lo, hi in zip(no_ci, d[lo_col], d[hi_col])
+        ]
         fig.add_trace(go.Scatter(
             x=x, y=d[y_col], name=g, mode="markers",
             marker=dict(size=10, color=color(g),
@@ -171,9 +190,9 @@ def dot_fig(frame, x_col, order, group_col, y_col, lo_col, hi_col, y_title, hove
             error_y=dict(type="data", symmetric=False, thickness=1.2, width=3,
                          array=(d[hi_col] - d[y_col]).fillna(0),
                          arrayminus=(d[y_col] - d[lo_col]).fillna(0)),
-            customdata=np.c_[d.index, d[lo_col], d[hi_col], d["n"]],
-            hovertemplate=(f"<b>{g}</b>, %{{customdata[0]}}<br>{hover_fmt}"
-                           "<br>%{customdata[3]:,} snapshots<extra></extra>")))
+            customdata=np.column_stack([d.index.to_numpy(), np.array(ci_txt, dtype=object), d["n"].to_numpy()]),
+            hovertemplate=(f"<b>{g}</b>, %{{customdata[0]}}<br>{val_fmt} %{{customdata[1]}}"
+                           "<br>%{customdata[2]:,} snapshots<extra></extra>")))
     base_layout(fig, None, y_title)
     fig.update_xaxes(tickvals=list(range(len(order))), ticktext=order)
     return fig
@@ -190,9 +209,9 @@ with st.sidebar:
         f"- [Pre-registration]({REPO}/blob/main/docs/hypotheses.md) (2026-10-21)\n"
         f"- [Data profile]({REPO}/blob/main/docs/data_profile.md)")
     st.caption(
-        "Every number on this page is read from CSVs committed in the repository, written "
-        "by notebooks 01–03 and sql/04_dashboard. Data: SII-WANGZJ/Polymarket_data, trades "
-        "through 2026-10-04.")
+        "Charts and tables read only CSVs committed in the repository, written by notebooks "
+        "01–03 and sql/04_dashboard. Data: SII-WANGZJ/Polymarket_data, trades through "
+        "2026-10-04.")
 
 title_col, toggle_col = st.columns([5, 1], vertical_alignment="center")
 title_col.title("Polymarket Calibration")
@@ -203,50 +222,64 @@ tab_over, tab_rq1, tab_rq2, tab_rq3, tab_method = st.tabs(
 
 # ---------------------------------------------------------------- overview
 with tab_over:
+    ov_rq1 = load("rq1_tests")
+    ov_rq2 = load("rq2_tests").set_index("test")
+    ov_rq3 = load("rq3_tests").iloc[0]
+    ov_w5 = load("rq2_price_bands_subject")
+    ov_w5 = ov_w5[(ov_w5["subject"] == "weather") & (ov_w5["band"] == "5.1-10c")].iloc[0]
+    ov_d1e = ov_rq1[(ov_rq1["horizon"] == "1d") & (ov_rq1["format"] == "event")].iloc[0]
+    ov_h1t = ov_rq1[(ov_rq1["horizon"] == "1h") & (ov_rq1["format"] == "template")].iloc[0]
+
     m = st.columns(4)
     m[0].metric("On-chain fills scanned", "1.27 B")
     m[1].metric("Resolved binary markets", "2,205,956")
-    m[2].metric("Primary 1-day snapshots", "351,535")
+    m[2].metric("Primary 1-day snapshots", f"{int(ov_rq3['n']):,}")
     m[3].metric("Hypotheses pre-registered", "2026-10-21")
 
-    st.markdown("""
+    st.markdown(f"""
 #### Key findings
 
 **RQ1. Crypto vs. non-crypto calibration: supported in 2 of 5 estimable cells, both fragile.**
-One day out, crypto *event* markets are under-confident relative to non-crypto (slope 1.37
-vs. 0.98). The gap shrinks to a non-significant +0.13 once early-closing markets are dropped,
-and in deadline markets the early close is itself caused by the outcome. One hour out,
-non-crypto *template* markets are under-confident (slope 1.30 vs. 1.10). That gap disappears
-under 5-minute VWAP pricing.
+One day out, crypto *event* markets are under-confident relative to non-crypto (slope
+{ov_d1e['slope_crypto']:.2f} vs. {ov_d1e['slope_noncrypto']:.2f}). The gap shrinks to a
+non-significant +0.13 once early-closing markets are dropped, and in deadline markets the
+early close is itself caused by the outcome. One hour out, non-crypto *template* markets are
+under-confident (slope {ov_h1t['slope_noncrypto']:.2f} vs. {ov_h1t['slope_crypto']:.2f}). That
+gap disappears under 5-minute VWAP pricing.
 
 > **What it means for traders:** neither difference is a tradable edge. The 1-day effect
 > depends on a close time no one can know in advance, and the 1-hour effect only exists at
 > last-trade prices. Outside those two results, calibration slopes run from 0.93 to 1.10
 > (1 is perfect), so a Polymarket price can be read as a probability in every category.
 
-**RQ2. Longshot bias: H2a supported, H2b not.** Longshots below 10¢ are overpriced by 0.25¢
-on average, about 10% of their price. The bias sits in auto-generated ladders, mostly weather;
-event-market longshots are calibrated. It does not shrink with liquidity.
+**RQ2. Longshot bias: H2a supported, H2b not.** Longshots below 10¢ are overpriced by
+{abs(ov_rq2.loc['H2a', 'estimate']) * 100:.2f}¢ on average, about 10% of their price. The bias
+sits in auto-generated ladders, mostly weather; event-market longshots are calibrated. It does
+not shrink with liquidity. An exploratory check (`02c`) shows that the sign flip under the
+registered $10,000 lifetime-volume floor (5.2) is post-snapshot collider bias: under a
+pre-snapshot liquidity floor, longshots stay overpriced (−0.16¢ at $1k, −0.19¢ at $10k).
 
 > **What it means for traders:** "cheap outcomes are overpriced" does not hold for event
 > markets, politics and sports included. Weather ladders are the exception: at 5–10¢,
-> selling a strike was worth about 1.7¢ per contract at the last trade price. That edge
-> likely does not survive real quotes, since a cent or two of spread absorbs it, it fades
-> under VWAP pricing and it reverses above $10,000 of volume.
+> selling a strike was worth about {abs(ov_w5['bias']) * 100:.1f}¢ per contract at the last
+> trade price. That edge likely does not survive real quotes, since a cent or two of spread
+> absorbs it and the bias fades under 5-minute VWAP pricing.
 
-**RQ3. Smart money: real but negligible.** Net buying by wallets with strong past records
-predicts outcomes beyond the price (β = +0.038, p = 0.00006). But moving the signal from 0
-to +1 shifts the win probability by only half a percentage point, and the information is in
-heavy *selling* only.
+**RQ3. Smart money: real but small.** Net buying by wallets with strong past records
+predicts outcomes beyond the price (β = {ov_rq3['coef']:+.3f}, p = {ov_rq3['p_value']:.5f}).
+Moving the registered CLOB-USD signal from 0 to +1 shifts win probability by
+{ov_rq3['ame_0_to_1'] * 100:.2f} pp, with information in heavy *selling* only. An exploratory
+check (`03b`) weighting trades by economic capital at risk (invariant to buy-YES vs.
+split+sell-NO) nearly doubles the slope (β = +0.070, +0.91 pp) and makes it two-sided.
 
-> **What it means for traders:** copying wallets with strong track records adds almost
-> nothing to the price. Markets they buy heavily win no more often than priced. Heavy
-> selling is worth about 0.9¢ per contract before any spread or fee, and is not established
-> where their volume is large enough to follow. Faster signals were not tested.
+> **What it means for traders:** copying wallets with strong track records adds less than a
+> percentage point to the price over a 7-day window before a 1-day snapshot, before any
+> spread or fee, and is not established where smart volume is large enough to follow ($1,000+).
+> Faster signals were not tested.
 
 Every departure from calibration that survives the pre-registered tests is confined to
-particular market formats or price measures, and weakens or reverses under at least one
-registered robustness check.
+particular market formats or price measures, and weakens under at least one registered
+robustness check.
 """)
     st.markdown("#### How calibrated is the whole market?")
     c1, c2 = st.columns([1, 2])
@@ -259,7 +292,6 @@ registered robustness check.
     pooled = allc.groupby(["format", "bin"], as_index=False)[["n", "wins", "psum"]].sum()
     pooled["mean_price"] = pooled["psum"] / pooled["n"]
     pooled["win_rate"] = pooled["wins"] / pooled["n"]
-    pooled["lo"] = pooled["hi"] = pooled["win_rate"]   # no CI in the pooled view
     with c1:
         st.caption(
             "All primary snapshots at this horizon, pooled over subjects, split by format. "
@@ -267,7 +299,8 @@ registered robustness check.
             "series (crypto Up/Down, weather ladders). Points on the diagonal mean a price "
             "of p wins p of the time. No CIs in this pooled view; see the RQ tabs.")
     with c2:
-        show(calibration_fig([(f, pooled[pooled["format"] == f]) for f in ["event", "template"]]),
+        show(calibration_fig([(f, pooled[pooled["format"] == f]) for f in ["event", "template"]],
+                             show_ci=False),
              pooled[["format", "bin", "n", "mean_price", "win_rate"]].round(4))
 
 # ---------------------------------------------------------------- RQ1
@@ -326,7 +359,8 @@ with tab_rq1:
                         f"**{ci(t['interaction'], t['ci_low'], t['ci_high'])}**  \n"
                         f"{t['n_crypto']:,} crypto / {t['n_noncrypto']:,} non-crypto markets")
             sens = load("rq1_sensitivities")
-            s = sens[(sens["horizon"] == hz) & (sens["format"] == f) & sens["estimable"]]
+            s = sens[(sens["horizon"] == hz) & (sens["format"] == f)
+                     & sens["estimable"] & sens["interaction"].notna()]
             rows = pd.concat([
                 pd.DataFrame([{"label": "registered estimate", "est": t["interaction"],
                                "lo": t["ci_low"], "hi": t["ci_high"], "primary": True}]),
@@ -340,8 +374,8 @@ with tab_rq1:
     d = desc[(desc["horizon"] == hz) & (desc["format"] == f)]
     st.dataframe(pd.DataFrame({
         "subject": d["subject"], "markets": d["n"], "clusters": d["clusters"],
-        "Brier [95% CI]": [ci(*r, digits=4) for r in d[["brier", "brier_lo", "brier_hi"]].values],
-        "log loss [95% CI]": [ci(*r, digits=4) for r in d[["log_loss", "ll_lo", "ll_hi"]].values],
+        "Brier [95% CI]": [ci(*r, digits=4, signed=False) for r in d[["brier", "brier_lo", "brier_hi"]].values],
+        "log loss [95% CI]": [ci(*r, digits=4, signed=False) for r in d[["log_loss", "ll_lo", "ll_hi"]].values],
         "calibration-in-the-large [95% CI]": [ci(*r) for r in d[["citl", "citl_lo", "citl_hi"]].values],
     }), hide_index=True, width="stretch")
     st.caption("Brier and log loss: lower is better; they mix calibration with how decisive "
@@ -369,13 +403,13 @@ with tab_rq2:
     order = ["0.1c", "0.2-0.5c", "0.6-2c", "2.1-5c", "5.1-10c"]
     if measure == "cents":
         bands = bands.assign(y=bands["bias"] * 100, lo=bands["ci_low"] * 100, hi=bands["ci_high"] * 100)
-        yt, hf = "mean (won − price), ¢", "%{y:+.3f}¢ [%{customdata[1]:.3f}, %{customdata[2]:.3f}]"
+        yt, vf, cd = "mean (won − price), ¢", "%{y:+.3f}¢", 3
     else:
         bands = bands.assign(y=bands["relative_bias"] * 100,
                              lo=bands["ci_low"] / bands["mean_price"] * 100,
                              hi=bands["ci_high"] / bands["mean_price"] * 100)
-        yt, hf = "bias, % of price", "%{y:+.1f}% [%{customdata[1]:.1f}, %{customdata[2]:.1f}]"
-    show(dot_fig(bands, "band", order, split, "y", "lo", "hi", yt, hf),
+        yt, vf, cd = "bias, % of price", "%{y:+.1f}%", 1
+    show(dot_fig(bands, "band", order, split, "y", "lo", "hi", yt, vf, cd),
          bands.drop(columns=["y", "lo", "hi"]).round(5))
     st.caption("Negative = overpriced. CR1 cluster-robust 95% CIs. Hollow markers: no wins in the "
                "cell, so no CI. Cells with under 30 clusters are omitted. Event longshots are "
@@ -401,8 +435,10 @@ with tab_rq2:
             pd.DataFrame({"label": s["sensitivity"], "est": s["estimate"] * 100,
                           "lo": s["ci_low"] * 100, "hi": s["ci_high"] * 100, "primary": False})])
         show(forest_fig(rows, "mean (won − price), ¢"), rows.drop(columns="primary").round(4))
-        st.caption("A $10,000 volume floor (5.2) flips the sign; 5-minute VWAP pricing (5.3) "
-                   "covers 0. The 2023 estimate rests on 317 snapshots.")
+        st.caption("A $10,000 lifetime volume floor (5.2) flips the sign, but an exploratory "
+                   "check (02c) shows this is post-snapshot collider bias: filtering on "
+                   "pre-snapshot liquidity >= $10k keeps H2a negative (−0.19¢). 5-minute VWAP "
+                   "(5.3) covers 0. The 2023 estimate rests on 308 snapshots.")
 
 # ---------------------------------------------------------------- RQ3
 with tab_rq3:
@@ -443,11 +479,13 @@ with tab_rq3:
                           "hi": refits["ci_high"], "primary": False}),
             pd.DataFrame({"label": sens["sensitivity"], "est": sens["coef"], "lo": sens["ci_low"],
                           "hi": sens["ci_high"], "primary": False})])
-        chart_rows = rows[~rows["label"].str.contains("2023")]
+        chart_rows = rows[~rows["label"].str.contains("2023", na=False)]
         show(forest_fig(chart_rows, "signal coefficient"), rows.drop(columns="primary").round(4))
         st.caption("Stable across refits, but the CI covers 0 with at least $1,000 of smart volume "
                    "(A4) and under VWAP pricing (5.3). 2023 (577 markets, CI ±0.5) is omitted "
-                   "from the chart for scale; it is in the data table.")
+                   "from the chart for scale; it is in the data table. An exploratory risk-capital "
+                   "denominator check (03b) raises β to +0.070 [+0.053, +0.086] and makes the "
+                   "bins two-sided.")
 
 # ---------------------------------------------------------------- method
 with tab_method:
@@ -456,7 +494,8 @@ with tab_method:
 
 - **Unit of analysis:** the market. Each resolved binary market contributes one price per
   horizon (1 week, 1 day, 1 hour before resolution): the last trade of at least $1 before
-  that point, found with window functions over 1.08 B trades.
+  that point, found with per-group `arg_max` over 1.08 B trades (spot-checked against window
+  functions).
 - **Primary population:** snapshots within a staleness cap, in markets with at least $1,000
   of volume.
 - **Resolution time:** Gamma API `closedTime`, checked against on-chain resolution events for
@@ -473,8 +512,8 @@ with tab_method:
 The hypotheses, tests and robustness checks were committed on 2026-10-21, before any price
 was compared with any outcome. Later estimation choices were logged as dated deviations
 (D1–D9) before the results they affect existed, with one exception (D8 Part A), which is
-marked as such. Each confirmatory notebook runs a planted control on simulated outcomes
-before reading the real ones.
+marked as such. Notebooks 02 and 03 run planted controls on simulated outcomes behind a
+switch before reading the real ones.
 
 #### Stack
 
