@@ -19,7 +19,8 @@ COPY (
     SELECT
         s.market_id,
         s.horizon,
-        s.snap_price,
+        -- Round to 6 decimals (exact USDC precision) to remove IEEE-754 1 - price drift.
+        round(s.snap_price, 6)                                          AS snap_price,
         s.staleness_s,
         s.within_cap,
         s.within_cap AND s.volume_usd >= 1000                           AS is_primary,

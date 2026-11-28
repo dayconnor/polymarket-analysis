@@ -47,8 +47,14 @@ COPY (
         b.horizon, b.format, b.subject, b.bin, b.n, b.clusters,
         round(b.mean_price, 6)                              AS mean_price,
         round(b.win_rate, 6)                                AS win_rate,
-        round(greatest(b.win_rate - 1.96 * s.se, 0), 6)     AS ci_low,
-        round(least(b.win_rate + 1.96 * s.se, 1), 6)        AS ci_high
+        -- NULL when clusters = 1 (se IS NULL) or win_rate is 0/1 (degenerate Wald SE = 0).
+        -- Avoids DuckDB's NULL-skipping greatest(NULL, 0) / least(NULL, 1) fabricating [0, 1].
+        CASE WHEN s.se IS NOT NULL AND b.win_rate > 0 AND b.win_rate < 1
+             THEN round(greatest(b.win_rate - 1.96 * s.se, 0), 6)
+        END                                                 AS ci_low,
+        CASE WHEN s.se IS NOT NULL AND b.win_rate > 0 AND b.win_rate < 1
+             THEN round(least(b.win_rate + 1.96 * s.se, 1), 6)
+        END                                                 AS ci_high
     FROM by_bin b
     JOIN se s USING (horizon, format, subject, bin)
     ORDER BY b.horizon, b.format, b.subject, b.bin

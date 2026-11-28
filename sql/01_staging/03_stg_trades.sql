@@ -15,9 +15,11 @@ SELECT
     price                                       AS raw_price,
     nonusdc_side,
     -- No ELSE: an unexpected side yields NULL, not a silently flipped price.
+    -- Round 1 - price to 6 decimals (exact USDC precision) so float64 drift
+    -- (e.g. 1.0 - 0.90 = 0.09999999999999998) never shifts threshold or bin edges.
     CASE nonusdc_side
         WHEN 'token1' THEN price
-        WHEN 'token2' THEN 1 - price
+        WHEN 'token2' THEN round(1 - price, 6)
     END                                         AS token1_price,
     usd_amount,
     token_amount,

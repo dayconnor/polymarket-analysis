@@ -18,7 +18,7 @@ WITH gamma AS (
         umaResolutionStatus                                 AS uma_status,
         TRY_CAST(umaResolutionStatuses AS VARCHAR[])        AS uma_history,
         automaticallyResolved = 'true'                      AS is_auto_resolved,
-        series_slug,
+        NULLIF(trim(series_slug), '')                       AS series_slug,
         sportsMarketType                                    AS sports_market_type,
         TRY_CAST(gameStartTime AS TIMESTAMPTZ)              AS game_start_time,
         found,
