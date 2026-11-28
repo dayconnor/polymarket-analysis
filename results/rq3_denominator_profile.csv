@@ -1,0 +1,5 @@
+grp,n_wallets,med_record_clob,med_record_risk,med_usd_to_risk,mean_sell_share,mean_cheap_sell_share,share_smart_risk,share_smart_clob
+CLOB-USD non-smart qualifying,605519,-0.0097,-0.01013,1.0379,0.6403,0.1886,0.0225,0.0
+CLOB-USD top decile,67280,0.09501,0.09537,0.9997,0.6142,0.1648,0.8341,1.0
+Risk-capital non-smart qualifying,678515,-0.01044,-0.00349,0.905,0.6186,0.2499,0.0,0.012
+Risk-capital top decile,75391,0.08732,0.08255,1.0348,0.6241,0.1457,1.0,0.7444
