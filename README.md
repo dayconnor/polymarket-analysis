@@ -134,7 +134,7 @@ The confirmatory result comes with four caveats:
 The H2a result is narrower than "Polymarket longshots are overpriced":
 
 - **It sits in auto-generated ladder markets.** Event longshots average −0.0001
-  [−0.0022, 0.0026]; template longshots average −0.0037 [−0.0048, −0.0026].
+  [−0.0022, 0.0024]; template longshots average −0.0037 [−0.0048, −0.0026].
 - **It is not a tick-floor artifact.** An exploratory split by price band
   (`notebooks/02b`, `results/rq2_price_bands.png`) shows:
   - event longshots are calibrated in every band above the 0.1¢ minimum tick;
@@ -207,8 +207,10 @@ markets, with CR1 95% CIs. The confirmatory slope rests mostly on the heavy-sell
 bin; heavy buying ([0.5, 1]) is indistinguishable from 0.*
 
 The planted control (real prices, signals and clusters; simulated outcomes)
-covered the truth in 95% of 200 draws per scenario, detected β = 0.03 in 95.5%,
-and rejected a true null in 5.0%.
+covered the truth in 96.5% (null) and 93.5% (planted) of 200 draws per scenario,
+detected β = 0.03 in 98.5%, and rejected a true null in 3.5%. These are the
+reproducible figures from the row-ordered frame (2026-11-27, see Reproducing); D9.5
+records the earlier run (95.0%, 95.5%, 5.0%).
 
 ## Data
 
@@ -362,3 +364,11 @@ date (`YYYY-MM-DD`) for a one-day smoke run that writes `*_smoke.parquet` instea
 The full remote reads total about 33 GB (price paths 8.4 GB, wallet trades about
 19 GB, data-quality checks about 5 GB); every step after `08` reads local extracts
 only. The notebooks run in seconds to about a minute each.
+
+The analysis frame is written in `(market_id, horizon)` order. The seeded cluster
+bootstraps and planted controls index clusters by first appearance, and DuckDB's
+parallel write keeps no row order, so before 2026-11-27 a rebuild changed their Monte
+Carlo digits (CI bounds by up to 0.03, control rates by a few draws). Tests, estimates
+and p-values were unaffected (to 10⁻⁶), and no CI changed whether it covers 0 outside
+one 14-cluster descriptive cell. With the order fixed, two full reruns of every
+notebook give byte-identical results and figures.

@@ -556,3 +556,15 @@ RQ3 frame is the 351,535 primary 1-day markets (17,291 clusters), of which
      are consistent with the analytic power of about 98% (β / SE ≈ 4.0).
 
 Recorded before any RQ3 outcome quantity was computed.
+
+**Note (2026-11-27; reproducibility, not a deviation).** `03_mart_analysis.sql`
+now writes the analysis frame ordered by `(market_id, horizon)`. DuckDB's
+parallel write kept no row order, and the seeded cluster bootstraps and planted
+controls index clusters by first appearance, so the D9 rebuild of the frame
+changed their Monte Carlo digits. Every test, estimate and p-value is unchanged
+(to 10⁻⁶), and every decision above stands. On the ordered frame, the D8.7
+control gives 94–100% coverage, 50/50 rejections and null rates of 0.06 (H2a)
+and 0.06 (H2b); the D9.5 control gives 96.5% (null) and 93.5% (planted)
+coverage, 98.5% rejection, a 3.5% null rate and an MDE of 0.021. D8.7 and D9.5
+are kept as written, since they record what was seen before the corresponding
+outcomes were computed. This note was written after all results.
