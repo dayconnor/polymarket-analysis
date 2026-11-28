@@ -13,6 +13,8 @@ SET TimeZone = 'UTC';
 
 -- Q1 Write the frame. is_primary = Section 3 snapshot (within cap) in the Section 2
 -- population (volume_usd >= 1,000). early_close feeds sensitivity 5.7.
+-- ORDER BY fixes the row order: the notebooks' seeded bootstraps and planted controls
+-- index clusters by first appearance, and a parallel COPY keeps no order (2026-11-27).
 COPY (
     SELECT
         s.market_id,
@@ -50,6 +52,7 @@ COPY (
     LEFT JOIN 'data/processed/mart_smart_signal.parquet' g
       ON g.market_id = s.market_id
      AND s.horizon = '1d'
+    ORDER BY s.market_id, s.horizon
 ) TO 'data/processed/mart_analysis.parquet' (FORMAT parquet, COMPRESSION zstd);
 
 CREATE OR REPLACE VIEW frame AS
