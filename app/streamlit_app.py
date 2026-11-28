@@ -219,14 +219,30 @@ and in deadline markets the early close is itself caused by the outcome. One hou
 non-crypto *template* markets are under-confident (slope 1.30 vs. 1.10). That gap disappears
 under 5-minute VWAP pricing.
 
+> **What it means for traders:** neither difference is a tradable edge. The 1-day effect
+> depends on a close time no one can know in advance, and the 1-hour effect only exists at
+> last-trade prices. Outside those two results, calibration slopes run from 0.93 to 1.10
+> (1 is perfect), so a Polymarket price can be read as a probability in every category.
+
 **RQ2. Longshot bias: H2a supported, H2b not.** Longshots below 10¢ are overpriced by 0.25¢
 on average, about 10% of their price. The bias sits in auto-generated ladders, mostly weather;
 event-market longshots are calibrated. It does not shrink with liquidity.
+
+> **What it means for traders:** "cheap outcomes are overpriced" does not hold for event
+> markets, politics and sports included. Weather ladders are the exception: at 5–10¢,
+> selling a strike was worth about 1.7¢ per contract at the last trade price. That edge
+> likely does not survive real quotes, since a cent or two of spread absorbs it, it fades
+> under VWAP pricing and it reverses above $10,000 of volume.
 
 **RQ3. Smart money: real but negligible.** Net buying by wallets with strong past records
 predicts outcomes beyond the price (β = +0.038, p = 0.00006). But moving the signal from 0
 to +1 shifts the win probability by only half a percentage point, and the information is in
 heavy *selling* only.
+
+> **What it means for traders:** copying wallets with strong track records adds almost
+> nothing to the price. Markets they buy heavily win no more often than priced. Heavy
+> selling is worth about 0.9¢ per contract before any spread or fee, and is not established
+> where their volume is large enough to follow. Faster signals were not tested.
 
 Every departure from calibration that survives the pre-registered tests is confined to
 particular market formats or price measures, and weakens or reverses under at least one
